@@ -1,0 +1,125 @@
+﻿version: '3.8'
+
+services:
+  gateway:
+    build:
+      context: ./gateway
+      dockerfile: Dockerfile
+    container_name: bankwesen_gateway
+    ports:
+      - "8000:8000"
+    environment:
+      - AUTH_SERVICE_URL=http://auth_service:8001
+      - OTP_SERVICE_URL=http://otp_service:8002
+      - PAYMENT_SERVICE_URL=http://payment_service:8003
+      - NOTIFICATION_SERVICE_URL=http://notification_service:8004
+      - TUITION_SERVICE_URL=http://tuition_service:8005
+    depends_on:
+      - auth_service
+      - otp_service
+      - payment_service
+      - notification_service
+      - tuition_service
+    networks:
+      - bankwesen-network
+    restart: unless-stopped
+
+  auth_service:
+    build:
+      context: ./services/auth_service
+      dockerfile: Dockerfile
+    container_name: bankwesen_auth_service
+    ports:
+      - "8001:8001"
+    environment:
+      - MONGODB_URL=mongodb://mongodb:27017/auth_db
+      - OTP_SERVICE_URL=http://otp_service:8002
+    depends_on:
+      - mongodb
+    networks:
+      - bankwesen-network
+    restart: unless-stopped
+
+  otp_service:
+    build:
+      context: ./services/otp_service
+      dockerfile: Dockerfile
+    container_name: bankwesen_otp_service
+    ports:
+      - "8002:8002"
+    environment:
+      - MONGODB_URL=mongodb://mongodb:27017/otp_db
+      - NOTIFICATION_SERVICE_URL=http://notification_service:8004
+    depends_on:
+      - mongodb
+    networks:
+      - bankwesen-network
+    restart: unless-stopped
+
+  payment_service:
+    build:
+      context: ./services/payment_service
+      dockerfile: Dockerfile
+    container_name: bankwesen_payment_service
+    ports:
+      - "8003:8003"
+    environment:
+      - MONGODB_URL=mongodb://mongodb:27017/payment_db
+      - AUTH_SERVICE_URL=http://auth_service:8001
+    depends_on:
+      - mongodb
+    networks:
+      - bankwesen-network
+    restart: unless-stopped
+
+  notification_service:
+    build:
+      context: ./services/notification_service
+      dockerfile: Dockerfile
+    container_name: bankwesen_notification_service
+    ports:
+      - "8004:8004"
+    environment:
+      - MONGODB_URL=mongodb://mongodb:27017/notification_db
+      - TUITION_SERVICE_URL=http://tuition_service:8005
+    depends_on:
+      - mongodb
+    networks:
+      - bankwesen-network
+    restart: unless-stopped
+
+  tuition_service:
+    build:
+      context: ./services/tuition_service
+      dockerfile: Dockerfile
+    container_name: bankwesen_tuition_service
+    ports:
+      - "8005:8005"
+    environment:
+      - MONGODB_URL=mongodb://mongodb:27017/tuition_db
+      - PAYMENT_SERVICE_URL=http://payment_service:8003
+    depends_on:
+      - mongodb
+    networks:
+      - bankwesen-network
+    restart: unless-stopped
+
+  mongodb:
+    image: mongo:7.0
+    container_name: bankwesen_mongodb
+    ports:
+      - "27017:27017"
+    environment:
+      - MONGO_INITDB_DATABASE=bankwesen_db
+    volumes:
+      - mongodb_data:/data/db
+    networks:
+      - bankwesen-network
+    restart: unless-stopped
+
+networks:
+  bankwesen-network:
+    driver: bridge
+
+volumes:
+  mongodb_data:
