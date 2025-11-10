@@ -1,0 +1,62 @@
+from typing import Optional
+from pydantic import BaseModel, Field, EmailStr
+from datetime import datetime
+from bson import ObjectId
+
+
+class PyObjectId(ObjectId):
+    """Custom ObjectId type for Pydantic."""
+    @classmethod
+    def __get_validators__(cls):
+        yield cls.validate
+
+    @classmethod
+    def validate(cls, v):
+        if not ObjectId.is_valid(v):
+            raise ValueError("Invalid objectid")
+        return ObjectId(v)
+
+    @classmethod
+    def __get_pydantic_json_schema__(cls, field_schema):
+        field_schema.update(type="string")
+
+
+class UserModel(BaseModel):
+    """User model matching the MongoDB schema."""
+    id: Optional[PyObjectId] = Field(alias="_id", default=None)
+    userid: str = Field(..., description="Unique user ID")
+    username: str = Field(..., description="Username for login")
+    password: str = Field(..., description="Plain password (TEMPORARY - will hash later)")
+    role: str = Field(..., description="User role (student, admin, staff)")
+    full_name: Optional[str] = Field(None, description="Full name of the user")
+    email: Optional[EmailStr] = Field(None, description="Email address")
+    balance: float = Field(default=0.0, description="Account balance")
+    created_at: Optional[datetime] = Field(default_factory=datetime.utcnow)
+    updated_at: Optional[datetime] = Field(default_factory=datetime.utcnow)
+
+    class Config:
+        populate_by_name = True
+        arbitrary_types_allowed = True
+        json_encoders = {ObjectId: str}
+        json_schema_extra = {
+            "example": {
+                "userid": "ST001",
+                "username": "student1",
+                "password": "password123",
+                "role": "student",
+                "full_name": "John Doe",
+                "email": "john.doe@example.com",
+                "balance": 1000.0
+            }
+        }
+
+
+class UserInDB(BaseModel):
+    """User model with plain password for database operations (TEMPORARY)."""
+    userid: str
+    username: str
+    password: str
+    role: str
+    full_name: Optional[str] = None
+    email: Optional[EmailStr] = None
+    balance: float = 0.0
