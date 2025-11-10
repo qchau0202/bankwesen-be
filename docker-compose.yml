@@ -31,11 +31,10 @@ services:
     container_name: bankwesen_auth_service
     ports:
       - "8001:8001"
+    env_file:
+      - ./services/auth_service/.env
     environment:
-      - MONGODB_URL=mongodb://mongodb:27017/auth_db
       - OTP_SERVICE_URL=http://otp_service:8002
-    depends_on:
-      - mongodb
     networks:
       - bankwesen-network
     restart: unless-stopped
