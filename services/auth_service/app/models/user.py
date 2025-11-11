@@ -26,10 +26,11 @@ class UserModel(BaseModel):
     id: Optional[PyObjectId] = Field(alias="_id", default=None)
     userid: str = Field(..., description="Unique user ID")
     username: str = Field(..., description="Username for login")
-    password: str = Field(..., description="Plain password (TEMPORARY - will hash later)")
+    password_hash: str = Field(..., description="Hashed password (bcrypt)")
     role: str = Field(..., description="User role (student, admin, staff)")
     full_name: Optional[str] = Field(None, description="Full name of the user")
     email: Optional[EmailStr] = Field(None, description="Email address")
+    phone_number: Optional[str] = Field(None, description="Phone number")
     balance: float = Field(default=0.0, description="Account balance")
     created_at: Optional[datetime] = Field(default_factory=datetime.utcnow)
     updated_at: Optional[datetime] = Field(default_factory=datetime.utcnow)
@@ -40,9 +41,9 @@ class UserModel(BaseModel):
         json_encoders = {ObjectId: str}
         json_schema_extra = {
             "example": {
-                "userid": "ST001",
+                "userid": "523K0000",
                 "username": "student1",
-                "password": "password123",
+                "password_hash": "$2b$12$LQv3c1yqBWVHxkd0LHAkCOYz6TtxMQJqhN8/LewY5OMxZJ.hY8h6.",
                 "role": "student",
                 "full_name": "John Doe",
                 "email": "john.doe@example.com",
@@ -52,11 +53,12 @@ class UserModel(BaseModel):
 
 
 class UserInDB(BaseModel):
-    """User model with plain password for database operations (TEMPORARY)."""
+    """User model with hashed password for database operations."""
     userid: str
     username: str
-    password: str
+    password_hash: str
     role: str
     full_name: Optional[str] = None
     email: Optional[EmailStr] = None
+    phone_number: Optional[str] = None
     balance: float = 0.0

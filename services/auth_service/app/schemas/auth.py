@@ -15,6 +15,27 @@ class LoginRequest(BaseModel):
             }
         }
 
+class RegisterRequest(BaseModel):
+    """Register request schema."""
+    username: str = Field(..., description="Username", min_length=3)
+    password: str = Field(..., description="Password", min_length=6)
+    confirm_password: str = Field(..., description="Confirm Password", min_length=6)
+    full_name: str = Field(..., description="Full name", min_length=1)
+    email: str = Field(..., description="Email")
+    phone_number: str = Field(..., description="Phone number", min_length=1)
+    
+    class Config:
+        json_schema_extra = {
+            "example": {
+                "username": "student1",
+                "password": "password123",
+                "confirm_password": "password123",
+                "full_name": "John Doe",
+                "email": "john.doe@example.com",
+                "phone_number": "1234567890"
+            }
+        }
+
 
 class TokenResponse(BaseModel):
     """Token response schema following RESTful API standards."""
@@ -30,7 +51,7 @@ class TokenResponse(BaseModel):
                 "token_type": "bearer",
                 "expires_in": 1800,
                 "user_info": {
-                    "userid": "ST001",
+                    "userid": "523K0000",
                     "username": "student1",
                     "role": "student",
                     "full_name": "John Doe",
@@ -48,7 +69,6 @@ class TokenData(BaseModel):
 
 
 class ErrorResponse(BaseModel):
-    """Error response schema."""
     status: str = Field(default="error", description="Response status")
     message: str = Field(..., description="Error message")
     detail: Optional[str] = Field(None, description="Detailed error information")
@@ -64,7 +84,6 @@ class ErrorResponse(BaseModel):
 
 
 class SuccessResponse(BaseModel):
-    """Success response schema."""
     status: str = Field(default="success", description="Response status")
     message: str = Field(..., description="Success message")
     data: Optional[dict] = Field(None, description="Response data")
