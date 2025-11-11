@@ -1,27 +1,42 @@
 ﻿from fastapi import FastAPI
-import httpx
-import os
+from fastapi.middleware.cors import CORSMiddleware
+from app.core.config import settings
+from app.db.mongodb import connect_to_mongo, close_mongo_connection
 
-app = FastAPI(title="Tuition Service")
+app = FastAPI(
+    title=settings.SERVICE_NAME,
+    description="Tuition Management Service - Handles student tuition records",
+    version="1.0.0"
+)
+
+# CORS Configuration
+app.add_middleware(
+    CORSMiddleware,
+    allow_origins=["*"],  # Configure this properly in production
+    allow_credentials=True,
+    allow_methods=["*"],
+    allow_headers=["*"],
+)
+
+# Startup event
+@app.on_event("startup")
+async def startup_event():
+    await connect_to_mongo()
+    print(f"🚀 {settings.SERVICE_NAME} started on port {settings.SERVICE_PORT}")
+
+# Shutdown event
+@app.on_event("shutdown")
+async def shutdown_event():
+    await close_mongo_connection()
 
 @app.get("/")
 async def root():
-    return {"service": "Tuition Service", "status": "running"}
-
-@app.get("/hello")
-async def hello():
-    return {"message": "Hello from Tuition Service!"}
+    return {
+        "service": settings.SERVICE_NAME,
+        "status": "running",
+        "database": settings.DATABASE_NAME
+    }
 
 @app.get("/health")
 async def health():
-    return {"status": "healthy"}
-
-@app.get("/call-payment")
-async def call_payment():
-    payment_url = os.getenv("PAYMENT_SERVICE_URL", "http://payment_service:8003")
-    async with httpx.AsyncClient() as client:
-        try:
-            response = await client.get(f"{payment_url}/hello", timeout=5.0)
-            return {"tuition_service": "called Payment service", "payment_response": response.json()}
-        except Exception as e:
-            return {"tuition_service": "error", "error": str(e)}
+    return {"status": "healthy", "service": "tuition_service"}

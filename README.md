@@ -87,12 +87,48 @@ Repeat the same steps inside any service directory under `services/` to run it l
   - `curl http://localhost:8004/call-tuition`
   - `curl http://localhost:8005/call-payment`
 
+## Database Configuration
+
+This project uses **separate MongoDB databases** for each service following microservices best practices:
+
+- **auth_db**: User authentication and management (Auth Service)
+- **tuition_db**: Student records and tuition fees (Tuition Service)
+- **payment_db**: Payment processing and transactions (Payment Service)
+
+### Initialize Databases
+
+Initialize all databases with sample data:
+```powershell
+python init_all_databases.py
+```
+
+Or initialize individually:
+```powershell
+# Auth database
+cd services/auth_service
+python insert_test_users.py
+
+# Tuition database
+cd ../tuition_service
+python init_tuition_db.py
+
+# Payment database
+cd ../payment_service
+python init_payment_db.py
+```
+
+📚 **See detailed database documentation**: [DATABASE_SETUP.md](DATABASE_SETUP.md)  
+📋 **Configuration summary**: [CONFIGURATION_SUMMARY.md](CONFIGURATION_SUMMARY.md)
+
 ## Environment Variables
 
-The Docker Compose file provides default values for service-to-service URLs and MongoDB connections. Override them as needed via environment variables or `.env` files:
+Each service requires its own `.env` file with the following variables:
 
-- `AUTH_SERVICE_URL`, `OTP_SERVICE_URL`, `PAYMENT_SERVICE_URL`, `NOTIFICATION_SERVICE_URL`, `TUITION_SERVICE_URL`: downstream service endpoints
-- `MONGODB_URL`: MongoDB connection string (each service uses its own database when running in Docker)
+- `MONGODB_URL`: MongoDB connection string (MongoDB Atlas cloud database)
+- `DATABASE_NAME`: Service-specific database name (auth_db, tuition_db, or payment_db)
+- `API_KEY`: API key for service-to-service authentication
+- `JWT_SECRET_KEY`: Secret key for JWT token generation
+- Service URLs: `AUTH_SERVICE_URL`, `OTP_SERVICE_URL`, `PAYMENT_SERVICE_URL`, `NOTIFICATION_SERVICE_URL`, `TUITION_SERVICE_URL`
 
 ## Project Structure
 

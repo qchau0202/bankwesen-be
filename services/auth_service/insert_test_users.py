@@ -1,12 +1,13 @@
 """
-Script to insert test users into MongoDB with plain passwords.
+Script to insert test users into MongoDB with hashed passwords.
 This script creates sample users with different roles for testing the authentication system.
-NOTE: Passwords are stored in plain text - TEMPORARY only, will be hashed later!
+Passwords are securely hashed using bcrypt before storing in the database.
 """
 
 import asyncio
 import os
 from motor.motor_asyncio import AsyncIOMotorClient
+from passlib.context import CryptContext
 from datetime import datetime
 from dotenv import load_dotenv
 import certifi
@@ -19,9 +20,17 @@ MONGODB_URL = os.getenv("MONGODB_URL")
 DATABASE_NAME = os.getenv("DATABASE_NAME", "auth_db")
 USERS_COLLECTION = os.getenv("USERS_COLLECTION", "User")
 
+# Password hashing context
+pwd_context = CryptContext(schemes=["bcrypt"], deprecated="auto")
+
 # Validate MongoDB URL is loaded
 if not MONGODB_URL:
     raise ValueError("MONGODB_URL not found in environment variables. Please check your .env file.")
+
+
+def hash_password(password: str) -> str:
+    """Hash a password using bcrypt."""
+    return pwd_context.hash(password)
 
 
 async def insert_test_users():
@@ -43,12 +52,12 @@ async def insert_test_users():
     users_collection = db[USERS_COLLECTION]
     print("✅ Connected successfully!")
     
-    # Define test users (TEMPORARY: passwords stored in plain text - will hash later!)
+    # Define test users with hashed passwords
     test_users = [
         {
-            "userid": "ST001",
+            "userid": "523K0001",
             "username": "student1",
-            "password": "password123",
+            "password_hash": hash_password("password123"),
             "role": "student",
             "full_name": "John Doe",
             "email": "john.doe@university.edu",
@@ -57,9 +66,9 @@ async def insert_test_users():
             "updated_at": datetime.utcnow()
         },
         {
-            "userid": "ST002",
+            "userid": "523K0002",
             "username": "student2",
-            "password": "password123",
+            "password_hash": hash_password("password123"),
             "role": "student",
             "full_name": "Jane Smith",
             "email": "jane.smith@university.edu",
@@ -68,9 +77,9 @@ async def insert_test_users():
             "updated_at": datetime.utcnow()
         },
         {
-            "userid": "SF001",
+            "userid": "523K0002",
             "username": "staff1",
-            "password": "staff123",
+            "password_hash": hash_password("staff123"),
             "role": "staff",
             "full_name": "Alice Johnson",
             "email": "alice.johnson@university.edu",
@@ -81,7 +90,7 @@ async def insert_test_users():
         {
             "userid": "AD001",
             "username": "admin",
-            "password": "admin123",
+            "password_hash": hash_password("admin123"),
             "role": "admin",
             "full_name": "Admin User",
             "email": "admin@university.edu",

@@ -20,6 +20,11 @@ class Settings(BaseSettings):
     # CORS Configuration
     ALLOWED_ORIGINS: str = "*"
     
+    # API Key Configuration
+    API_KEY: str = "your-api-key-change-in-production"
+    API_KEY_NAME: str = "X-API-Key"
+    ENABLE_API_KEY: bool = True
+    
     class Config:
         env_file = ".env"
         case_sensitive = True
