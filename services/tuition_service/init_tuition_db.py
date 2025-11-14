@@ -26,47 +26,17 @@ async def init_database():
     print(f"🔄 Initializing {DATABASE_NAME}...")
     
     # Clear existing data (optional - comment out in production)
-    await db.Student.delete_many({})
     await db.Tuition.delete_many({})
     print("✅ Cleared existing data")
     
-    # Sample Students
+    # Sample Tuition Records (now includes student info)
     now_utc7 = datetime.now(UTC_PLUS_7)
-    students = [
-        {
-            "studentid": "ST1731369600",
-            "student_name": "John Doe",
-            "student_code": "523K0001",
-            "email": "john.doe@student.edu",
-            "created_at": now_utc7,
-            "updated_at": now_utc7
-        },
-        {
-            "studentid": "ST1731369601",
-            "student_name": "Jane Smith",
-            "student_code": "523K0002",
-            "email": "jane.smith@student.edu",
-            "created_at": now_utc7,
-            "updated_at": now_utc7
-        },
-        {
-            "studentid": "ST1731369602",
-            "student_name": "Bob Johnson",
-            "student_code": "523K0003",
-            "email": "bob.johnson@student.edu",
-            "created_at": now_utc7,
-            "updated_at": now_utc7
-        }
-    ]
-    
-    result = await db.Student.insert_many(students)
-    print(f"✅ Inserted {len(result.inserted_ids)} students")
-    
-    # Sample Tuition Records
     tuitions = [
         {
             "tuitionid": "TU1731369600001",
-            "studentid": "ST1731369600",
+            "studentname": "John Doe",
+            "studentcode": "523K0001",
+            "studentemail": "john.doe@student.edu",
             "semester": "Semester I",
             "year": "2023-2024",
             "tuition_ammount": 5000.00,
@@ -76,7 +46,9 @@ async def init_database():
         },
         {
             "tuitionid": "TU1731369600002",
-            "studentid": "ST1731369600",
+            "studentname": "John Doe",
+            "studentcode": "523K0001",
+            "studentemail": "john.doe@student.edu",
             "semester": "Semester II",
             "year": "2023-2024",
             "tuition_ammount": 5000.00,
@@ -86,7 +58,9 @@ async def init_database():
         },
         {
             "tuitionid": "TU1731369600003",
-            "studentid": "ST1731369601",
+            "studentname": "Jane Smith",
+            "studentcode": "523K0002",
+            "studentemail": "jane.smith@student.edu",
             "semester": "Semester I",
             "year": "2023-2024",
             "tuition_ammount": 4800.00,
@@ -96,7 +70,9 @@ async def init_database():
         },
         {
             "tuitionid": "TU1731369600004",
-            "studentid": "ST1731369602",
+            "studentname": "Bob Johnson",
+            "studentcode": "523K0003",
+            "studentemail": "bob.johnson@student.edu",
             "semester": "Summer Semester",
             "year": "2023-2024",
             "tuition_ammount": 5200.00,
