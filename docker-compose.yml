@@ -46,11 +46,17 @@ services:
     container_name: bankwesen_otp_service
     ports:
       - "8002:8002"
+    env_file:
+      - ./services/otp_service/.env
     environment:
       - MONGODB_URL=mongodb://mongodb:27017/otp_db
       - NOTIFICATION_SERVICE_URL=http://notification_service:8004
+      - REDIS_URL=redis://redis:6379
+      - REDIS_HOST=redis
+      - REDIS_PORT=6379
     depends_on:
       - mongodb
+      - redis
     networks:
       - bankwesen-network
     restart: unless-stopped
@@ -62,6 +68,8 @@ services:
     container_name: bankwesen_payment_service
     ports:
       - "8003:8003"
+    env_file:
+      - ./services/payment_service/.env
     environment:
       - MONGODB_URL=mongodb://mongodb:27017/payment_db
       - AUTH_SERVICE_URL=http://auth_service:8001
@@ -78,6 +86,8 @@ services:
     container_name: bankwesen_notification_service
     ports:
       - "8004:8004"
+    env_file:
+      - ./services/notification_service/.env
     environment:
       - MONGODB_URL=mongodb://mongodb:27017/notification_db
       - TUITION_SERVICE_URL=http://tuition_service:8005
@@ -94,6 +104,8 @@ services:
     container_name: bankwesen_tuition_service
     ports:
       - "8005:8005"
+    env_file:
+      - ./services/tuition_service/.env
     environment:
       - MONGODB_URL=mongodb://mongodb:27017/tuition_db
       - PAYMENT_SERVICE_URL=http://payment_service:8003
@@ -116,9 +128,22 @@ services:
       - bankwesen-network
     restart: unless-stopped
 
+  redis:
+    image: redis:7-alpine
+    container_name: bankwesen_redis
+    ports:
+      - "6379:6379"
+    volumes:
+      - redis_data:/data
+    networks:
+      - bankwesen-network
+    restart: unless-stopped
+    command: redis-server --appendonly yes
+
 networks:
   bankwesen-network:
     driver: bridge
 
 volumes:
   mongodb_data:
+  redis_data:

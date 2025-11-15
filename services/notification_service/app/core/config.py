@@ -1,27 +1,23 @@
 from pydantic_settings import BaseSettings
-from typing import Optional
 
 class Settings(BaseSettings):
-    """Application settings"""
+    """Notification Service Settings"""
     
     # Service Info
     SERVICE_NAME: str
     SERVICE_PORT: int
     
-    # Redis Configuration
-    REDIS_HOST: str
-    REDIS_PORT: int
-    REDIS_URL: str
-    
-    # OTP Configuration
-    OTP_LENGTH: int
-    OTP_EXPIRATION: int
-    OTP_MAX_ATTEMPTS: int
-    OTP_ATTEMPT_WINDOW: int
+    # Email Configuration
+    SMTP_HOST: str
+    SMTP_PORT: int
+    SMTP_USER: str
+    SMTP_PASSWORD: str
+    SMTP_FROM_EMAIL: str
+    SMTP_FROM_NAME: str
     
     # External Services
-    NOTIFICATION_SERVICE_URL: str
-    MONGODB_URL: Optional[str] = None
+    TUITION_SERVICE_URL: str
+    MONGODB_URL: str
     
     # API Key Configuration
     API_KEY: str

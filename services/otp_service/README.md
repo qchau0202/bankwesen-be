@@ -1,226 +1,320 @@
-# OTP Service# OTP Service
+# OTP Service
 
+OTP (One-Time Password) Service for payment verification using Redis.
 
+## Overview
 
-One-Time Password service with MongoDB.One-Time Password microservice for the Bankwesen banking system.
+The OTP Service manages one-time password generation, verification, and lifecycle for payment transactions. It uses Redis for fast, temporary storage of OTP data with automatic expiration.
 
+## Features
 
+- **OTP Generation**: Generate 6-digit OTP codes with 60-second expiration
+- **OTP Verification**: Verify OTP codes with attempt tracking
+- **OTP Resend**: Resend expired OTPs
+- **Payment Locking**: Lock payments after 3 failed attempts (5-minute lockout)
+- **Redis-backed Storage**: Fast, temporary storage with automatic expiration
 
-## Endpoints## 🎯 Purpose
+## Endpoints
 
+### Base URL: `/api/otp`
 
-
-- `GET /` - Service infoHandles:
-
-- `GET /hello` - Hello World- OTP generation for email/SMS
-
-- `GET /health` - Health check- OTP verification
-
-- `GET /call-notification` - Call Notification service (test inter-service communication)- OTP expiration management
-
-- OTP revocation
-
-## Running
-
-## 🚀 Running the Service
-
-### Docker
-
-```bash### With Docker
-
-docker-compose up otp_service
-
-``````bash
-
-# From project root
-
-### Localdocker-compose up otp_service
-
-```bash
-
-cd services/otp_service# Or build and run individually
-
-.\.venv\Scripts\activatecd services/otp_service
-
-uvicorn app.main:app --reload --port 8002docker build -t bankwesen-otp .
-
-```docker run -p 8002:8002 bankwesen-otp
-
+#### 1. Request OTP
+```http
+POST /api/otp/request
 ```
 
-## Testing
-
-### Local Development
-
-```bash
-
-# Hello World```bash
-
-curl http://localhost:8002/hello# Navigate to OTP service directory
-
-cd services/otp_service
-
-# Call Notification service
-
-curl http://localhost:8002/call-notification# Create virtual environment
-
-```python -m venv .venv
-
-
-
-## Database# Activate virtual environment (Windows)
-
-- MongoDB: `mongodb://mongodb:27017/otp_db`.venv\Scripts\activate
-
-
-
-## API Docs# Activate virtual environment (Linux/Mac)
-
-http://localhost:8002/docssource .venv/bin/activate
-
-
-# Install dependencies
-pip install -r requirements.txt
-
-# Run the service
-uvicorn app.main:app --reload --port 8002
-```
-
-## 📡 Endpoints
-
-### Core Endpoints
-
-- **GET** `/` - Service information
-- **GET** `/health` - Health check
-- **GET** `/test` - Test endpoint
-
-### OTP Operations
-
-- **POST** `/generate` - Generate OTP
-  ```json
-  {
-    "email": "user@example.com",
-    "purpose": "verification"
-  }
-  ```
-  Response includes OTP code (for testing only)
-
-- **POST** `/verify` - Verify OTP
-  ```json
-  {
-    "email": "user@example.com",
-    "otp_code": "123456"
-  }
-  ```
-
-- **DELETE** `/revoke/{email}` - Revoke OTP for email
-
-## 📚 API Documentation
-
-Interactive API docs available at:
-- Swagger UI: http://localhost:8002/docs
-- ReDoc: http://localhost:8002/redoc
-
-## 🧪 Testing
-
-### Via Gateway
-```bash
-curl http://localhost:8000/otp/test
-```
-
-### Direct Access
-```bash
-# Health check
-curl http://localhost:8002/health
-
-# Generate OTP
-curl -X POST http://localhost:8002/generate \
-  -H "Content-Type: application/json" \
-  -d '{
-    "email": "test@example.com",
-    "purpose": "verification"
-  }'
-
-# Verify OTP (use code from generate response)
-curl -X POST http://localhost:8002/verify \
-  -H "Content-Type: application/json" \
-  -d '{
-    "email": "test@example.com",
-    "otp_code": "123456"
-  }'
-
-# Revoke OTP
-curl -X DELETE http://localhost:8002/revoke/test@example.com
-```
-
-## 📦 Dependencies
-
-See `requirements.txt`:
-- fastapi - Web framework
-- uvicorn - ASGI server
-- pydantic - Data validation
-- redis - Cache for OTP storage
-
-## 🗄️ Storage
-
-Uses Redis for temporary OTP storage:
-```
-REDIS_URL=redis://redis:6379/0
-```
-
-### OTP Structure
-
-```python
+**Request Body:**
+```json
 {
-  "email@example.com": {
-    "code": "123456",
-    "expires_at": "2024-01-01T12:00:00",
-    "purpose": "verification"
-  }
+  "payment_id": "pay_123",
+  "tuition_id": "tuition_456",
+  "user_id": "user_789",
+  "amount": 1000.00,
+  "email": "user@example.com"
 }
 ```
 
-## ⏰ OTP Specifications
-
-- **Length**: 6 digits
-- **Expiration**: 10 minutes
-- **Purpose**: Configurable (verification, login, etc.)
-- **Storage**: In-memory (testing) / Redis (production)
-
-## 🔧 Environment Variables
-
-```env
-REDIS_URL=redis://redis:6379/0
+**Response:**
+```json
+{
+  "success": true,
+  "message": "OTP generated successfully. Check your email.",
+  "payment_id": "pay_123",
+  "expires_in": 60,
+  "attempts_remaining": 3
+}
 ```
 
-## 📝 Notes
+#### 2. Verify OTP
+```http
+POST /api/otp/verify
+```
 
-⚠️ **Current Implementation**: 
-- Uses in-memory storage (dict) for testing
-- OTP is returned in response for easy testing
-- No actual email/SMS sending
+**Request Body:**
+```json
+{
+  "payment_id": "pay_123",
+  "otp_code": "123456"
+}
+```
 
-🚀 **Production Considerations**:
-- Integrate with Redis for distributed storage
-- Implement email service (SendGrid, AWS SES)
-- Implement SMS service (Twilio, AWS SNS)
-- Remove OTP from response
-- Add rate limiting
-- Add attempt tracking
-- Implement backup codes
-- Add logging and monitoring
+**Response (Success):**
+```json
+{
+  "success": true,
+  "message": "OTP verified successfully",
+  "payment_id": "pay_123",
+  "verified": true,
+  "attempts_remaining": null,
+  "locked": false
+}
+```
 
-## 🔐 Security Features
+**Response (Failed - Invalid OTP):**
+```json
+{
+  "success": false,
+  "message": "Invalid OTP code. 2 attempts remaining.",
+  "payment_id": "pay_123",
+  "verified": false,
+  "attempts_remaining": 2,
+  "locked": false
+}
+```
 
-- OTP expiration (10 minutes)
-- Single-use codes (deleted after verification)
-- Email validation
-- CORS middleware
+**Response (Failed - Locked):**
+```json
+{
+  "success": false,
+  "message": "Maximum attempts reached. Payment is locked.",
+  "payment_id": "pay_123",
+  "verified": false,
+  "attempts_remaining": 0,
+  "locked": true
+}
+```
 
-## 🌐 Integration
+#### 3. Resend OTP
+```http
+POST /api/otp/resend
+```
 
-Commonly used with:
-- Auth Service (2FA)
-- Password reset flows
-- Transaction verification
-- Account verification
+**Request Body:**
+```json
+{
+  "payment_id": "pay_123"
+}
+```
+
+**Response:**
+```json
+{
+  "success": true,
+  "message": "OTP resent successfully. Check your email.",
+  "payment_id": "pay_123",
+  "expires_in": 60,
+  "attempts_remaining": 3
+}
+```
+
+#### 4. Get OTP Status
+```http
+GET /api/otp/{payment_id}/status
+```
+
+**Response:**
+```json
+{
+  "success": true,
+  "message": "OTP is active",
+  "payment_id": "pay_123",
+  "expires_in": 45,
+  "attempts_remaining": 3
+}
+```
+
+#### 5. Cancel OTP
+```http
+DELETE /api/otp/{payment_id}
+```
+
+**Response:** `204 No Content`
+
+## Payment Flow Integration
+
+### 3.1 Create Payment
+```
+Payment Service -> OTP Service
+POST /api/otp/request
+```
+
+### 3.2 OTP Request
+```
+User requests OTP -> System generates OTP (60s expiration)
+POST /api/payment/{paymentID}/otp -> POST /api/otp/request
+```
+
+### 3.3 OTP Verification
+```
+User inputs OTP -> System verifies
+POST /api/payment/{paymentID}/verify-otp -> POST /api/otp/verify
+```
+
+**Success Flow:**
+```
+OTP Verified -> Create Transaction -> Return Payment Details
+POST /api/otp/verify -> POST /api/transaction -> GET /api/payment/{paymentID}
+```
+
+**Failure Flows:**
+
+1. **Expired OTP:**
+```
+User clicks resend -> Generate new OTP
+POST /api/payment/{paymentID}/otp -> POST /api/otp/resend
+```
+
+2. **Wrong OTP (Max 3 attempts):**
+```
+3 failed attempts -> Payment locked -> Cancel payment
+POST /api/payment/{paymentID}/cancel
+```
+
+## Redis Data Structure
+
+### OTP Data
+**Key:** `otp:{payment_id}`
+**Expiration:** 60 seconds
+**Value:**
+```json
+{
+  "otp_code": "123456",
+  "payment_id": "pay_123",
+  "tuition_id": "tuition_456",
+  "user_id": "user_789",
+  "amount": 1000.00,
+  "attempts": 0,
+  "created_at": "2025-11-15T10:30:00",
+  "email": "user@example.com"
+}
+```
+
+### Attempts Counter
+**Key:** `otp_attempts:{payment_id}`
+**Expiration:** 300 seconds (5 minutes)
+**Value:** Integer (0-3)
+
+### Payment Lock
+**Key:** `otp_lock:{payment_id}`
+**Expiration:** 300 seconds (5 minutes)
+**Value:** "locked"
+
+## Configuration
+
+Environment variables (`.env` or docker-compose):
+
+```env
+REDIS_HOST=redis
+REDIS_PORT=6379
+REDIS_URL=redis://redis:6379
+
+OTP_LENGTH=6
+OTP_EXPIRATION=60
+OTP_MAX_ATTEMPTS=3
+OTP_ATTEMPT_WINDOW=300
+
+NOTIFICATION_SERVICE_URL=http://notification_service:8004
+```
+
+## Running the Service
+
+### With Docker Compose
+```bash
+docker-compose up otp_service redis
+```
+
+### Standalone
+```bash
+cd services/otp_service
+pip install -r requirements.txt
+uvicorn app.main:app --host 0.0.0.0 --port 8002
+```
+
+## Testing the Service
+
+### Using curl
+
+1. **Request OTP:**
+```bash
+curl -X POST http://localhost:8002/api/otp/request \
+  -H "Content-Type: application/json" \
+  -d '{
+    "payment_id": "pay_123",
+    "tuition_id": "tuition_456",
+    "user_id": "user_789",
+    "amount": 1000.00,
+    "email": "user@example.com"
+  }'
+```
+
+2. **Verify OTP:**
+```bash
+curl -X POST http://localhost:8002/api/otp/verify \
+  -H "Content-Type: application/json" \
+  -d '{
+    "payment_id": "pay_123",
+    "otp_code": "123456"
+  }'
+```
+
+3. **Resend OTP:**
+```bash
+curl -X POST http://localhost:8002/api/otp/resend \
+  -H "Content-Type: application/json" \
+  -d '{
+    "payment_id": "pay_123"
+  }'
+```
+
+## Dependencies
+
+- FastAPI 0.104.1
+- Redis 5.0.1
+- Pydantic Settings 2.1.0
+- Uvicorn 0.24.0
+- HTTPx 0.25.1
+
+## Security Considerations
+
+1. **OTP Expiration**: OTPs expire after 60 seconds
+2. **Attempt Limiting**: Maximum 3 verification attempts
+3. **Payment Locking**: Payments locked for 5 minutes after max attempts
+4. **Automatic Cleanup**: Redis automatically removes expired data
+5. **Secure Storage**: OTP codes stored in Redis with encryption in transit
+
+## Architecture
+
+```
+┌─────────────────┐
+│  Payment Service│
+└────────┬────────┘
+         │
+         ▼
+┌─────────────────┐      ┌─────────────────┐
+│   OTP Service   │◄────►│      Redis      │
+└────────┬────────┘      └─────────────────┘
+         │
+         ▼
+┌─────────────────┐
+│Notification Svc │
+└─────────────────┘
+```
+
+## Future Enhancements
+
+- [ ] Email/SMS notification integration
+- [ ] Configurable OTP length and expiration
+- [ ] Support for multiple OTP delivery methods
+- [ ] OTP usage analytics and monitoring
+- [ ] Rate limiting per user/payment
+- [ ] Multi-factor authentication support
