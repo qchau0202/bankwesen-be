@@ -8,6 +8,10 @@ class Settings(BaseSettings):
     # MongoDB Settings
     MONGODB_URL: str
     DATABASE_NAME: str
+    AUTH_DATABASE_NAME: str = "auth_db"  # Database where users are stored
+    
+    # Redis Settings
+    REDIS_URL: str = "redis://redis:6379"
     
     # JWT Settings (must match auth service)
     SECRET_KEY: str

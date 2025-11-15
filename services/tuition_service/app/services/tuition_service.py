@@ -11,7 +11,7 @@ class TuitionService:
     
     def __init__(self, database: AsyncIOMotorDatabase):
         self.db = database
-        self.collection = database.Tuition
+        self.collection = database.tuitions
     
     def _format_currency(self, amount: float) -> str:
         """Format amount to VND currency string."""

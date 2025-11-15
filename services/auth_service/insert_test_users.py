@@ -17,7 +17,7 @@ load_dotenv()
 # MongoDB configuration from environment variables
 MONGODB_URL = os.getenv("MONGODB_URL")
 DATABASE_NAME = os.getenv("DATABASE_NAME", "auth_db")
-USERS_COLLECTION = os.getenv("USERS_COLLECTION", "User")
+USERS_COLLECTION = os.getenv("USERS_COLLECTION", "users")
 
 # Validate MongoDB URL is loaded
 if not MONGODB_URL:

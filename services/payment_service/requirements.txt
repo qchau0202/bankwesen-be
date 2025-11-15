@@ -9,3 +9,5 @@ pydantic-settings
 email-validator
 python-jose[cryptography]
 python-multipart
+redis
+aioredis

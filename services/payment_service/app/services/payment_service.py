@@ -325,6 +325,7 @@ class PaymentService:
                         await self._update_tuition_status(payment.tuitionId)
                         
                         # 3. Update payment status to completed in a single atomic operation
+                        completed_at = datetime.utcnow()
                         await self.payments_collection.update_one(
                             {"paymentId": payment_id},
                             {"$set": {
@@ -332,11 +333,29 @@ class PaymentService:
                                 "otp_attempts": new_attempts,
                                 "is_locked": False,
                                 "expired_at": None,
-                                "completed_at": datetime.utcnow()
+                                "completed_at": completed_at
                             }}
                         )
                         
                         logger.info(f"Payment {payment_id} completed successfully - Amount {payment.amount} deducted from customer {payment.customerId}")
+                        
+                        # 4. Publish payment completion event via Redis message broker
+                        try:
+                            from app.broker.redis_broker import publish_event
+                            await publish_event(
+                                channel="payment.events",
+                                event_type="payment.completed",
+                                data={
+                                    "payment_id": payment_id,
+                                    "customer_id": payment.customerId,
+                                    "tuition_id": payment.tuitionId,
+                                    "amount": payment.amount,
+                                    "completed_at": completed_at.isoformat()
+                                }
+                            )
+                        except Exception as e:
+                            # Don't fail the payment if event publishing fails
+                            logger.warning(f"⚠️ Failed to publish payment completion event: {e}")
                         
                     except Exception as e:
                         logger.error(f"Error processing transaction: {e}")
@@ -467,26 +486,46 @@ class PaymentService:
             return None
     
     async def _deduct_customer_balance(self, customer_id: str, amount: float):
-        """Deduct amount from customer's balance via auth service"""
+        """Deduct amount from customer's balance directly from auth_db"""
         try:
-            async with httpx.AsyncClient() as client:
-                response = await client.post(
-                    f"{settings.AUTH_SERVICE_URL}/api/v1/auth/deduct-balance",
-                    json={
-                        "customer_id": customer_id,
-                        "amount": amount
-                    },
-                    headers={"x-api-key": settings.API_KEY},
-                    timeout=10.0
-                )
-                
-                if response.status_code != 200:
-                    error_detail = response.json().get("detail", response.text)
-                    raise Exception(f"Failed to deduct customer balance: {error_detail}")
-                    
-                logger.info(f"Deducted {amount} from customer {customer_id}")
+            from app.db.mongodb import get_auth_database
+            auth_db = get_auth_database()
+            users_collection = auth_db["users"]  # Collection name is "users" (lowercase)
+            
+            logger.info(f"🔍 Looking for customer with customerId: {customer_id}")
+            
+            # Find the user by customerId field (not _id)
+            user = await users_collection.find_one({"customerId": customer_id})
+            logger.info(f"🔍 Query result: {user}")
+            
+            if not user:
+                # Try to find any user to debug the field name
+                sample_user = await users_collection.find_one({})
+                logger.error(f"🔍 Sample user from DB: {sample_user}")
+                raise Exception(f"Customer {customer_id} not found")
+            
+            current_balance = user.get("balance", 0)
+            if current_balance < amount:
+                raise Exception(f"Insufficient balance. Current: {current_balance}, Required: {amount}")
+            
+            # Deduct balance atomically
+            new_balance = current_balance - amount
+            result = await users_collection.update_one(
+                {"customerId": customer_id},
+                {
+                    "$set": {
+                        "balance": new_balance,
+                        "updated_at": datetime.utcnow()
+                    }
+                }
+            )
+            
+            if result.modified_count == 0:
+                raise Exception(f"Failed to update balance for customer {customer_id}")
+            
+            logger.info(f"✅ Deducted {amount} from customer {customer_id}. New balance: {new_balance}")
         except Exception as e:
-            logger.error(f"Error deducting customer balance: {e}")
+            logger.error(f"❌ Error deducting customer balance: {e}")
             raise
     
     async def _update_tuition_status(self, tuition_id: str):
