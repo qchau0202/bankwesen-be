@@ -71,10 +71,7 @@ services:
     env_file:
       - ./services/payment_service/.env
     environment:
-      - MONGODB_URL=mongodb://mongodb:27017/payment_db
       - AUTH_SERVICE_URL=http://auth_service:8001
-    depends_on:
-      - mongodb
     networks:
       - bankwesen-network
     restart: unless-stopped
@@ -89,10 +86,7 @@ services:
     env_file:
       - ./services/notification_service/.env
     environment:
-      - MONGODB_URL=mongodb://mongodb:27017/notification_db
       - TUITION_SERVICE_URL=http://tuition_service:8005
-    depends_on:
-      - mongodb
     networks:
       - bankwesen-network
     restart: unless-stopped
@@ -107,10 +101,7 @@ services:
     env_file:
       - ./services/tuition_service/.env
     environment:
-      - MONGODB_URL=mongodb://mongodb:27017/tuition_db
       - PAYMENT_SERVICE_URL=http://payment_service:8003
-    depends_on:
-      - mongodb
     networks:
       - bankwesen-network
     restart: unless-stopped

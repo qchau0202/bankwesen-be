@@ -1,0 +1,1 @@
+"""Tuition service module."""

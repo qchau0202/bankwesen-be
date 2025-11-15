@@ -1,46 +1,85 @@
-# Bankwesen Backend - Microservices Architecture
+# Bankwesen Backend - Banking Microservices System
 
-This repository contains a simple FastAPI-based microservices stack designed to demonstrate inter-service communication behind an API gateway. Each service exposes a hello world endpoint, a health check, and a downstream call to another service. MongoDB is included for completeness, although the sample handlers do not persist data.
+Complete banking system with microservices architecture featuring authentication, tuition management, payments, OTP verification, and notifications.
+
+## 🚀 One-Click Setup
+
+**See [QUICK_START.md](QUICK_START.md) for complete setup guide!**
+
+### Quick Commands
+
+**Windows:**
+```powershell
+docker-compose up --build -d
+.\init-db.ps1
+```
+
+**Linux/Mac:**
+```bash
+docker-compose up --build -d
+./init-db.sh
+```
+
+**That's it!** Access services at:
+- Gateway: http://localhost:8000/docs
+- Auth: http://localhost:8001/docs
+- Tuition: http://localhost:8005/docs
+
+**Test login:**
+- Username: `student1` / Password: `password123`
 
 ## Architecture Overview
-- Gateway (`8000`): entry point and service fan-out
-- Auth Service (`8001`): calls OTP Service
-- OTP Service (`8002`): OTP generation and verification with Redis, calls Notification Service
-- Payment Service (`8003`): calls Auth Service
-- Notification Service (`8004`): email notifications via SMTP, calls Tuition Service
-- Tuition Service (`8005`): calls Payment Service
-- MongoDB (`27017`): shared database instance (one database per service)
-- Redis (`6379`): OTP storage and session management
 
-All services are packaged with Dockerfiles and orchestrated with `docker-compose`.
+```
+Gateway (8000) → Auth (8001) → MongoDB
+              → OTP (8002) → Redis
+              → Payment (8003) → MongoDB
+              → Notification (8004) → SMTP
+              → Tuition (8005) → MongoDB
+```
+
+### Services
+- **Gateway** (`8000`): API entry point and routing
+- **Auth Service** (`8001`): JWT authentication, user management
+- **OTP Service** (`8002`): OTP generation/verification with Redis
+- **Payment Service** (`8003`): Payment processing
+- **Notification Service** (`8004`): Email notifications
+- **Tuition Service** (`8005`): Student tuition management
+- **MongoDB** (`27017`): Database (auth_db, tuition_db, etc.)
+- **Redis** (`6379`): OTP and session storage
+
+## Key Features
+
+✅ **JWT Authentication** - Secure token-based auth  
+✅ **No Role System** - Simplified access control  
+✅ **Cross-Student Access** - Students can help pay for others  
+✅ **Sample Data** - Pre-loaded users and tuition records  
+✅ **Docker Ready** - One command to run everything  
+✅ **API Documentation** - Swagger UI for all services
+
 ## Prerequisites
-- Docker Desktop (or Docker Engine with the Docker Compose plugin)
-- Optional: Python 3.11 or newer if you plan to run services directly on your machine
 
-## Quick Start with Docker Compose
+- Docker & Docker Compose
+- Git
 
-1. Clone the repository and move into the project directory:
-   ```bash
-   git clone <repo-url>
-   cd bankwesen-be
-   ```
-2. Build and start the entire stack:
-   ```bash
-   docker-compose up --build
-   ```
-3. Wait for the services to report that they are running. FastAPI will log the available URLs as each service boots.
-4. Verify the deployment:
-   ```bash
-   curl http://localhost:8000/health
-   curl http://localhost:8000/call-all
-   ```
-   The second command should return a JSON payload containing responses from every downstream service.
-5. Stop the stack when you are done:
-   ```bash
-   docker-compose down
-   # Add -v if you want to remove the MongoDB volume
-   # docker-compose down -v
-   ```
+## Management
+
+### Stop Services
+```bash
+docker-compose down
+```
+
+### Reset Database
+```bash
+docker-compose down -v
+docker-compose up -d
+.\init-db.ps1  # or ./init-db.sh
+```
+
+### View Logs
+```bash
+docker-compose logs -f tuition_service
+```
 
 ### Service Documentation
 

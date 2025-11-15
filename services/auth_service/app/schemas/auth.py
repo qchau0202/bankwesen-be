@@ -53,7 +53,6 @@ class TokenResponse(BaseModel):
                 "user_info": {
                     "userid": "523K0000",
                     "username": "student1",
-                    "role": "student",
                     "full_name": "John Doe",
                     "email": "john.doe@example.com"
                 }
@@ -65,7 +64,6 @@ class TokenData(BaseModel):
     """Token data decoded from JWT."""
     userid: Optional[str] = None
     username: Optional[str] = None
-    role: Optional[str] = None
 
 
 class ErrorResponse(BaseModel):

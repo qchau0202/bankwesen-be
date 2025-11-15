@@ -1,22 +1,17 @@
-from fastapi import Header, HTTPException
-from app.core.config import settings
+from fastapi import Depends
+from motor.motor_asyncio import AsyncIOMotorDatabase
+from app.db.mongodb import get_database
+from app.core.security import get_current_user, get_current_student
 
 
-async def verify_api_key(x_api_key: str = Header(...)):
-    """Verify API key from request header."""
-    if not settings.ENABLE_API_KEY:
-        return True
-    
-    if not x_api_key:
-        raise HTTPException(
-            status_code=401,
-            detail="API Key is missing"
-        )
-    
-    if x_api_key != settings.API_KEY:
-        raise HTTPException(
-            status_code=403,
-            detail="Invalid API Key"
-        )
-    
-    return True
+def get_tuition_db(db: AsyncIOMotorDatabase = Depends(get_database)):
+    """Dependency to get tuition database."""
+    return db
+
+
+# Export commonly used dependencies
+__all__ = [
+    "get_tuition_db",
+    "get_current_user",
+    "get_current_student"
+]
