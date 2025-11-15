@@ -80,15 +80,6 @@ curl -X POST http://localhost:8001/api/v1/auth/register \
   }'
 ```
 
-### Run Test Scripts
-```bash
-# Test API key functionality
-python test_api_key.py
-
-# Test registration functionality
-python test_register.py
-```
-
 ### Health Check (No API key required)
 ```bash
 curl http://localhost:8001/health

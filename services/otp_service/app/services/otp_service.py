@@ -83,16 +83,37 @@ class OTPService:
         Returns:
             Tuple of (is_valid, message, attempts_remaining)
         """
+        logger.info(f"Verifying OTP: payment_id={payment_id}, code={otp_code}")
+        
         # Check if payment is locked
         lock_key = self._get_lock_key(payment_id)
         if await self.redis.exists(lock_key):
+            logger.warning(f"Payment {payment_id} is locked")
             return False, "Payment is locked due to too many failed attempts", 0
         
         # Get OTP data
         otp_key = self._get_otp_key(payment_id)
+        logger.info(f"Looking for OTP in Redis with key: {otp_key}")
         otp_data_json = await self.redis.get(otp_key)
         
         if not otp_data_json:
+            logger.warning(f"OTP not found in Redis for key: {otp_key}")
+            # Check if there are any OTP keys to help debug
+            all_otp_keys = []
+            try:
+                cursor = 0
+                while True:
+                    cursor, keys = await self.redis.redis.scan(cursor, match="otp:*", count=100)
+                    all_otp_keys.extend([k.decode() if isinstance(k, bytes) else k for k in keys])
+                    if cursor == 0:
+                        break
+                if all_otp_keys:
+                    logger.info(f"Available OTP keys in Redis: {all_otp_keys}")
+                else:
+                    logger.info("No OTP keys found in Redis")
+            except Exception as e:
+                logger.error(f"Error checking Redis keys: {e}")
+            
             return False, "OTP expired or not found", 0
         
         try:

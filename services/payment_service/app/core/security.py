@@ -93,13 +93,14 @@ async def get_current_user(
         )
     
     # Extract user information
-    username: str = payload.get("username")
-    userid: str = payload.get("userid")
+    username = payload.get("username")
+    userid = payload.get("userid")
+    email = payload.get("email")
     
     if username is None:
         raise HTTPException(
             status_code=status.HTTP_401_UNAUTHORIZED,
-            detail="Invalid token payload - missing username",
+            detail="Could not validate credentials. Missing username.",
             headers={"WWW-Authenticate": "Bearer"},
         )
     
@@ -108,9 +109,7 @@ async def get_current_user(
         userid = username
     
     return {
+        "username": username,
         "userid": userid,
-        "username": username
+        "email": email
     }
-
-
-

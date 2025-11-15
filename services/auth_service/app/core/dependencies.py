@@ -73,13 +73,13 @@ async def get_current_user(
     
     # Extract user information
     username: str = payload.get("username")
-    userid: str = payload.get("userid")
+    customerId: str = payload.get("customerId")
     
-    if username is None or userid is None:
+    if username is None or customerId is None:
         raise HTTPException(
             status_code=status.HTTP_401_UNAUTHORIZED,
             detail="Invalid token payload",
             headers={"WWW-Authenticate": "Bearer"},
         )
     
-    return TokenData(userid=userid, username=username)
+    return TokenData(customerId=customerId, username=username)
