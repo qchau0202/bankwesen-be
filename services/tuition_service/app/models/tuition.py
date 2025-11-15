@@ -22,13 +22,19 @@ class PyObjectId(ObjectId):
 
 
 class TuitionModel(BaseModel):
-    """Tuition model for tuition_db."""
+    """Tuition model for tuition_db with student information."""
     id: Optional[PyObjectId] = Field(alias="_id", default=None)
     tuitionId: str = Field(..., description="Unique tuition ID (PK)")
+    
+    # Student Information
     studentId: str = Field(..., description="Student ID/code")
+    studentName: str = Field(..., description="Full name of the student")
+    studentEmail: EmailStr = Field(..., description="Student email address")
+    
+    # Tuition Information
     semester: str = Field(..., description="Semester: 'Semester I', 'Semester II', or 'Summer Semester'")
     academic_year: str = Field(..., description='Academic year range in the format "YYYY-YYYY" (e.g. "2023-2024")')
-    tuition_debt: float = Field(..., description="Tuition debt amount")
+    tuition_amount: float = Field(..., description="Tuition amount in Vietnamese Dong (VND)")
     due_date: datetime = Field(..., description="Payment due date")
     status: str = Field(default="pending", description="Status: pending, partial, paid")
     created_at: Optional[datetime] = Field(default_factory=datetime.utcnow)
@@ -41,9 +47,11 @@ class TuitionModel(BaseModel):
             "example": {
                 "tuitionId": "TU1731369600001",
                 "studentId": "523K0001",
+                "studentName": "Nguyen Van A",
+                "studentEmail": "nguyenvana@student.edu.vn",
                 "semester": "Semester I",
-                "academic_year": "2023-2024",
-                "tuition_debt": 5000.00,
+                "academic_year": "2024-2025",
+                "tuition_amount": 15000000.00,
                 "due_date": "2024-12-31T23:59:59",
                 "status": "pending"
             }

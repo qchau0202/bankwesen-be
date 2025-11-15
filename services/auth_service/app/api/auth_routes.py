@@ -10,8 +10,6 @@ from ..schemas.auth import (
 from ..services.auth_service import AuthService
 from ..core.dependencies import (
     get_current_user,
-    require_admin,
-    require_staff,
     verify_api_key
 )
 
@@ -129,7 +127,6 @@ async def get_current_user_info(current_user: TokenData = Depends(get_current_us
         data={
             "userid": current_user.userid,
             "username": current_user.username,
-            "role": current_user.role,
         }
     )
 
@@ -148,45 +145,9 @@ async def verify_token(current_user: TokenData = Depends(get_current_user)):
         data={
             "userid": current_user.userid,
             "username": current_user.username,
-            "role": current_user.role,
             "is_valid": True
         }
     )
 
 
-@router.get(
-    "/admin/users",
-    response_model=SuccessResponse,
-    status_code=status.HTTP_200_OK,
-    summary="Get All Users (Admin Only)",
-    description="Get list of all users - accessible only by administrators"
-)
-async def get_all_users(current_user: TokenData = Depends(require_admin)):
-    return SuccessResponse(
-        status="success",
-        message="Admin access granted",
-        data={
-            "requested_by": current_user.username,
-            "role": current_user.role,
-            "note": "This endpoint is only accessible by administrators"
-        }
-    )
 
-
-@router.get(
-    "/staff/dashboard",
-    response_model=SuccessResponse,
-    status_code=status.HTTP_200_OK,
-    summary="Staff Dashboard (Staff/Admin Only)",
-    description="Access staff dashboard - accessible by staff and administrators"
-)
-async def staff_dashboard(current_user: TokenData = Depends(require_staff)):
-    return SuccessResponse(
-        status="success",
-        message="Staff access granted",
-        data={
-            "requested_by": current_user.username,
-            "role": current_user.role,
-            "note": "This endpoint is accessible by staff and administrators"
-        }
-    )

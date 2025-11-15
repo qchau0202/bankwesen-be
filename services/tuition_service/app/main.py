@@ -2,10 +2,11 @@
 from fastapi.middleware.cors import CORSMiddleware
 from app.core.config import settings
 from app.db.mongodb import connect_to_mongo, close_mongo_connection
+from app.api.tuition_routes import router as tuition_router
 
 app = FastAPI(
     title=settings.SERVICE_NAME,
-    description="Tuition Management Service - Handles student tuition records",
+    description="Tuition Management Service - Handles student tuition records in Vietnamese Dong (VND)",
     version="1.0.0"
 )
 
@@ -17,6 +18,9 @@ app.add_middleware(
     allow_methods=["*"],
     allow_headers=["*"],
 )
+
+# Include routers
+app.include_router(tuition_router)
 
 # Startup event
 @app.on_event("startup")

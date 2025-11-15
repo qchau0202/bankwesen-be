@@ -39,7 +39,6 @@ class AuthService:
             "sub": user.get("username"),  # Subject (username)
             "userid": user.get("userid"),
             "username": user.get("username"),
-            "role": user.get("role"),
             "email": user.get("email")
         }
         
@@ -54,7 +53,6 @@ class AuthService:
         user_info = {
             "userid": user.get("userid"),
             "username": user.get("username"),
-            "role": user.get("role"),
             "full_name": user.get("full_name"),
             "email": user.get("email"),
             "balance": user.get("balance", 0.0)
@@ -113,7 +111,6 @@ class AuthService:
             "userid": userid,
             "username": register_data.username,
             "password_hash": get_password_hash(register_data.password),
-            "role": "student",  # Default role for new registrations
             "full_name": register_data.full_name,
             "email": register_data.email,
             "phone_number": register_data.phone_number,

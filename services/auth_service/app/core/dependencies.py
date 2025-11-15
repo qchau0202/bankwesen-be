@@ -1,6 +1,6 @@
 from fastapi import Depends, HTTPException, status, Header
 from fastapi.security import HTTPBearer, HTTPAuthorizationCredentials, APIKeyHeader
-from typing import Optional, List
+from typing import Optional
 from ..core.security import decode_access_token
 from ..schemas.auth import TokenData
 from ..core.config import settings
@@ -74,7 +74,6 @@ async def get_current_user(
     # Extract user information
     username: str = payload.get("username")
     userid: str = payload.get("userid")
-    role: str = payload.get("role")
     
     if username is None or userid is None:
         raise HTTPException(
@@ -83,27 +82,4 @@ async def get_current_user(
             headers={"WWW-Authenticate": "Bearer"},
         )
     
-    return TokenData(userid=userid, username=username, role=role)
-
-
-class RoleChecker:
-    """
-    Dependency class to check if user has required role(s).
-    Used for role-based access control to protect internal APIs.
-    """
-    def __init__(self, allowed_roles: List[str]):
-        self.allowed_roles = allowed_roles
-    
-    def __call__(self, current_user: TokenData = Depends(get_current_user)) -> TokenData:
-        if current_user.role not in self.allowed_roles:
-            raise HTTPException(
-                status_code=status.HTTP_403_FORBIDDEN,
-                detail=f"Access denied. Required roles: {', '.join(self.allowed_roles)}",
-            )
-        return current_user
-
-
-# Pre-defined role checkers for common use cases
-require_admin = RoleChecker(["admin"])
-require_staff = RoleChecker(["admin", "staff"])
-require_authenticated = RoleChecker(["admin", "staff", "student"])
+    return TokenData(userid=userid, username=username)

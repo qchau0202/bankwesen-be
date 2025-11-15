@@ -27,7 +27,6 @@ class UserModel(BaseModel):
     customerId: str = Field(..., description="Unique customer ID")
     username: str = Field(..., description="Username for login")
     password_hash: str = Field(..., description="Hashed password (bcrypt)")
-    role: str = Field(..., description="User role (student, admin, staff)")
     full_name: Optional[str] = Field(None, description="Full name of the user")
     email: Optional[EmailStr] = Field(None, description="Email address")
     phone_number: Optional[str] = Field(None, description="Phone number")
@@ -44,7 +43,6 @@ class UserModel(BaseModel):
                 "customerId": "523K0000",
                 "username": "student1",
                 "password_hash": "$2b$12$LQv3c1yqBWVHxkd0LHAkCOYz6TtxMQJqhN8/LewY5OMxZJ.hY8h6.",
-                "role": "student",
                 "full_name": "John Doe",
                 "email": "john.doe@example.com",
                 "balance": 1000.0

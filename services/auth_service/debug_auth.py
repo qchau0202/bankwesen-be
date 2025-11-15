@@ -5,9 +5,8 @@ Debug script to check database users and test password verification
 import asyncio
 import os
 from motor.motor_asyncio import AsyncIOMotorClient
-from passlib.context import CryptContext
+import bcrypt
 from dotenv import load_dotenv
-import certifi
 
 # Load environment variables
 load_dotenv()
@@ -16,9 +15,6 @@ load_dotenv()
 MONGODB_URL = os.getenv("MONGODB_URL")
 DATABASE_NAME = os.getenv("DATABASE_NAME", "auth_db")
 USERS_COLLECTION = os.getenv("USERS_COLLECTION", "User")
-
-# Password hashing context (same as in security.py)
-pwd_context = CryptContext(schemes=["bcrypt"], deprecated="auto")
 
 
 async def debug_users():
@@ -35,7 +31,6 @@ async def debug_users():
     
     client = AsyncIOMotorClient(
         MONGODB_URL,
-        tlsCAFile=certifi.where(),
         serverSelectionTimeoutMS=5000,
         connectTimeoutMS=10000,
         socketTimeoutMS=10000
@@ -95,7 +90,7 @@ async def debug_users():
             print(f"\n   Testing password: '{test_password}'")
             
             try:
-                is_valid = pwd_context.verify(test_password, password_hash)
+                is_valid = bcrypt.checkpw(test_password.encode('utf-8'), password_hash.encode('utf-8'))
                 if is_valid:
                     print(f"   ✅ Password verification SUCCESS!")
                 else:

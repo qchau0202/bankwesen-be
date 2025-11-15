@@ -7,10 +7,9 @@ Passwords are securely hashed using bcrypt before storing in the database.
 import asyncio
 import os
 from motor.motor_asyncio import AsyncIOMotorClient
-from passlib.context import CryptContext
+import bcrypt
 from datetime import datetime
 from dotenv import load_dotenv
-import certifi
 
 # Load environment variables from .env file
 load_dotenv()
@@ -20,9 +19,6 @@ MONGODB_URL = os.getenv("MONGODB_URL")
 DATABASE_NAME = os.getenv("DATABASE_NAME", "auth_db")
 USERS_COLLECTION = os.getenv("USERS_COLLECTION", "User")
 
-# Password hashing context
-pwd_context = CryptContext(schemes=["bcrypt"], deprecated="auto")
-
 # Validate MongoDB URL is loaded
 if not MONGODB_URL:
     raise ValueError("MONGODB_URL not found in environment variables. Please check your .env file.")
@@ -30,7 +26,9 @@ if not MONGODB_URL:
 
 def hash_password(password: str) -> str:
     """Hash a password using bcrypt."""
-    return pwd_context.hash(password)
+    salt = bcrypt.gensalt()
+    hashed = bcrypt.hashpw(password.encode('utf-8'), salt)
+    return hashed.decode('utf-8')
 
 
 async def insert_test_users():
@@ -40,10 +38,9 @@ async def insert_test_users():
     print(f"Database: {DATABASE_NAME}")
     print(f"Collection: {USERS_COLLECTION}")
     
-    # Connect to MongoDB with SSL certificate
+    # Connect to MongoDB
     client = AsyncIOMotorClient(
         MONGODB_URL,
-        tlsCAFile=certifi.where(),  # Use certifi for SSL certificates
         serverSelectionTimeoutMS=5000,
         connectTimeoutMS=10000,
         socketTimeoutMS=10000
@@ -58,7 +55,6 @@ async def insert_test_users():
             "userid": "523K0001",
             "username": "student1",
             "password_hash": hash_password("password123"),
-            "role": "student",
             "full_name": "John Doe",
             "email": "john.doe@university.edu",
             "balance": 5000.0,
@@ -69,32 +65,9 @@ async def insert_test_users():
             "userid": "523K0002",
             "username": "student2",
             "password_hash": hash_password("password123"),
-            "role": "student",
             "full_name": "Jane Smith",
             "email": "jane.smith@university.edu",
             "balance": 3000.0,
-            "created_at": datetime.utcnow(),
-            "updated_at": datetime.utcnow()
-        },
-        {
-            "userid": "523K0002",
-            "username": "staff1",
-            "password_hash": hash_password("staff123"),
-            "role": "staff",
-            "full_name": "Alice Johnson",
-            "email": "alice.johnson@university.edu",
-            "balance": 0.0,
-            "created_at": datetime.utcnow(),
-            "updated_at": datetime.utcnow()
-        },
-        {
-            "userid": "AD001",
-            "username": "admin",
-            "password_hash": hash_password("admin123"),
-            "role": "admin",
-            "full_name": "Admin User",
-            "email": "admin@university.edu",
-            "balance": 0.0,
             "created_at": datetime.utcnow(),
             "updated_at": datetime.utcnow()
         }
@@ -115,7 +88,7 @@ async def insert_test_users():
             print(f"   ⚠️  User '{user['username']}' already exists, skipping...")
         else:
             result = await users_collection.insert_one(user)
-            print(f"   ✅ Inserted user: {user['username']} (Role: {user['role']}, ID: {result.inserted_id})")
+            print(f"   ✅ Inserted user: {user['username']} (ID: {result.inserted_id})")
     
     # Display summary
     print("\n" + "="*80)
@@ -128,20 +101,15 @@ async def insert_test_users():
         print(f"\n👤 {user['full_name']}")
         print(f"   Username: {user['username']}")
         print(f"   User ID:  {user['userid']}")
-        print(f"   Role:     {user['role']}")
         print(f"   Email:    {user['email']}")
         print(f"   Balance:  ${user['balance']:.2f}")
     
     print("\n" + "="*80)
     print("🔑 LOGIN CREDENTIALS FOR TESTING")
     print("="*80)
-    print("\n📚 Student Accounts:")
+    print("\n👤 User Accounts:")
     print("   Username: student1  |  Password: password123")
     print("   Username: student2  |  Password: password123")
-    print("\n👔 Staff Account:")
-    print("   Username: staff1    |  Password: staff123")
-    print("\n🔐 Admin Account:")
-    print("   Username: admin     |  Password: admin123")
     print("="*80)
     
     # Close connection

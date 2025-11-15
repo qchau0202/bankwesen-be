@@ -8,10 +8,10 @@ mongodb_client: Optional[AsyncIOMotorClient] = None
 
 
 async def connect_to_mongodb():
-    """Connect to MongoDB with SSL certificate handling."""
+    """Connect to MongoDB with SSL certificate handling for Atlas."""
     global mongodb_client
     try:
-        # Initialize client
+        # Initialize client with SSL for MongoDB Atlas
         client = AsyncIOMotorClient(
             settings.MONGODB_URL,
             tlsCAFile=certifi.where(),
