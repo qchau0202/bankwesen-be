@@ -37,7 +37,7 @@ class AuthService:
         # Prepare token data with important information
         token_data = {
             "sub": user.get("username"),  # Subject (username)
-            "userid": user.get("userid"),
+            "customerId": user.get("customerId"),
             "username": user.get("username"),
             "email": user.get("email")
         }
@@ -49,13 +49,14 @@ class AuthService:
             expires_delta=access_token_expires
         )
         
-        # Prepare user info (without sensitive data)
+        # Prepare user info
         user_info = {
-            "userid": user.get("userid"),
+            "customerId": user.get("customerId"),
             "username": user.get("username"),
             "full_name": user.get("full_name"),
             "email": user.get("email"),
-            "balance": user.get("balance", 0.0)
+            "phone_number": user.get("phone_number"),
+            "balance": user.get("balance", 100000000.0)
         }
         
         return {
@@ -104,17 +105,17 @@ class AuthService:
             return None
         
         # Generate userid (format: ST + timestamp suffix)
-        userid = f"ST{str(int(datetime.utcnow().timestamp()))[-6:]}"
-        
+        customerId = f"ST{str(int(datetime.utcnow().timestamp()))[-6:]}"
+
         # Create new user document
         new_user = {
-            "userid": userid,
+            "customerId": customerId,
             "username": register_data.username,
             "password_hash": get_password_hash(register_data.password),
             "full_name": register_data.full_name,
             "email": register_data.email,
             "phone_number": register_data.phone_number,
-            "balance": 0.0,
+            "balance": 100000000.0,
             "created_at": datetime.utcnow(),
             "updated_at": datetime.utcnow()
         }

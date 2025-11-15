@@ -8,7 +8,8 @@ import asyncio
 import os
 from motor.motor_asyncio import AsyncIOMotorClient
 import bcrypt
-from datetime import datetime
+import certifi
+from datetime import datetime, timezone
 from dotenv import load_dotenv
 
 # Load environment variables from .env file
@@ -38,84 +39,99 @@ async def insert_test_users():
     print(f"Database: {DATABASE_NAME}")
     print(f"Collection: {USERS_COLLECTION}")
     
-    # Connect to MongoDB
+    # Connect to MongoDB with SSL certificate handling for Atlas
     client = AsyncIOMotorClient(
         MONGODB_URL,
+        tlsCAFile=certifi.where(),
         serverSelectionTimeoutMS=5000,
         connectTimeoutMS=10000,
         socketTimeoutMS=10000
     )
+    # Test connection first
+    try:
+        await client.admin.command('ping')
+        print("Connected successfully!")
+    except Exception as e:
+        print(f"Connection test failed: {e}")
+        client.close()
+        raise
+    
     db = client[DATABASE_NAME]
     users_collection = db[USERS_COLLECTION]
-    print("✅ Connected successfully!")
     
     # Define test users with hashed passwords
     test_users = [
         {
-            "userid": "523K0001",
+            "customerId": "523K0001",
             "username": "student1",
-            "password_hash": hash_password("password123"),
+            "password_hash": hash_password("123456"),
             "full_name": "John Doe",
-            "email": "john.doe@university.edu",
-            "balance": 5000.0,
-            "created_at": datetime.utcnow(),
-            "updated_at": datetime.utcnow()
+            "email": "john.doe@student.tdtu.edu.vn",
+            "phone_number": "0901234567",
+            "balance": 100000000.0,
+            "created_at": datetime.now(timezone.utc),
+            "updated_at": datetime.now(timezone.utc)
         },
         {
-            "userid": "523K0002",
+            "customerId": "523K0002",
             "username": "student2",
-            "password_hash": hash_password("password123"),
+            "password_hash": hash_password("123456"),
             "full_name": "Jane Smith",
-            "email": "jane.smith@university.edu",
-            "balance": 3000.0,
-            "created_at": datetime.utcnow(),
-            "updated_at": datetime.utcnow()
+            "email": "jane.smith@student.tdtu.edu.vn",
+            "phone_number": "0902234567",
+            "balance": 60000000.0,
+            "created_at": datetime.now(timezone.utc),
+            "updated_at": datetime.now(timezone.utc)
         }
     ]
     
-    # Clear existing users (optional - comment out if you want to keep existing data)
-    print("\n🗑️  Clearing existing users...")
-    delete_result = await users_collection.delete_many({})
-    print(f"   Deleted {delete_result.deleted_count} existing users")
-    
     # Insert test users
-    print("\n📝 Inserting test users...")
+    print("\nInserting test users...")
     for user in test_users:
-        # Check if user already exists
-        existing_user = await users_collection.find_one({"username": user["username"]})
+        # Check if user already exists by username or customerId
+        existing_user = await users_collection.find_one({
+            "$or": [
+                {"username": user["username"]},
+                {"customerId": user["customerId"]}
+            ]
+        })
         
         if existing_user:
-            print(f"   ⚠️  User '{user['username']}' already exists, skipping...")
+            print(f"   User '{user['username']}' (customerId: {user['customerId']}) already exists, skipping...")
         else:
-            result = await users_collection.insert_one(user)
-            print(f"   ✅ Inserted user: {user['username']} (ID: {result.inserted_id})")
+            try:
+                result = await users_collection.insert_one(user)
+                print(f"   Inserted user: {user['username']} (ID: {result.inserted_id})")
+            except Exception as e:
+                print(f"   Error inserting user '{user['username']}': {str(e)}")
     
     # Display summary
     print("\n" + "="*80)
-    print("📊 TEST USERS SUMMARY")
+    print("TEST USERS SUMMARY")
     print("="*80)
     
     all_users = await users_collection.find({}).to_list(length=100)
     
     for user in all_users:
-        print(f"\n👤 {user['full_name']}")
+        print(f"\n{user['full_name']}")
         print(f"   Username: {user['username']}")
-        print(f"   User ID:  {user['userid']}")
+        print(f"   Customer ID:  {user.get('customerId', 'N/A')}")
+        print(f"   Phone Number: {user['phone_number']}")
         print(f"   Email:    {user['email']}")
         print(f"   Balance:  ${user['balance']:.2f}")
     
     print("\n" + "="*80)
-    print("🔑 LOGIN CREDENTIALS FOR TESTING")
+    print("LOGIN CREDENTIALS FOR TESTING")
     print("="*80)
-    print("\n👤 User Accounts:")
-    print("   Username: student1  |  Password: password123")
-    print("   Username: student2  |  Password: password123")
+    print("\nUser Accounts:")
+    print("   Username: student1  |  Password: 123456")
+    print("   Username: student2  |  Password: 123456")
     print("="*80)
     
     # Close connection
     client.close()
-    print("\n✅ MongoDB connection closed")
-    print("✅ Test users inserted successfully!")
+    print("\nMongoDB connection closed")
+    print("Test users inserted successfully!")
 
 
 if __name__ == "__main__":

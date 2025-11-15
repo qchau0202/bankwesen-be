@@ -10,8 +10,8 @@ class LoginRequest(BaseModel):
     class Config:
         json_schema_extra = {
             "example": {
-                "username": "student1",
-                "password": "password123"
+                "username": "customer1",
+                "password": "123456"
             }
         }
 
@@ -27,12 +27,12 @@ class RegisterRequest(BaseModel):
     class Config:
         json_schema_extra = {
             "example": {
-                "username": "student1",
-                "password": "password123",
-                "confirm_password": "password123",
-                "full_name": "John Doe",
-                "email": "john.doe@example.com",
-                "phone_number": "1234567890"
+                "username": "customer1",
+                "password": "123456",
+                "confirm_password": "123456",
+                "full_name": "Mr Customer 1",
+                "email": "customer1@example.com",
+                "phone_number": "0901234567"
             }
         }
 
@@ -51,10 +51,12 @@ class TokenResponse(BaseModel):
                 "token_type": "bearer",
                 "expires_in": 1800,
                 "user_info": {
-                    "userid": "523K0000",
-                    "username": "student1",
-                    "full_name": "John Doe",
-                    "email": "john.doe@example.com"
+                    "customerId": "523K0000",
+                    "username": "customer1",
+                    "full_name": "Mr Customer 1",
+                    "email": "customer1@example.com",
+                    "phone_number": "0901234567",
+                    "balance": 100000000.0
                 }
             }
         }
@@ -62,7 +64,7 @@ class TokenResponse(BaseModel):
 
 class TokenData(BaseModel):
     """Token data decoded from JWT."""
-    userid: Optional[str] = None
+    customerId: Optional[str] = None
     username: Optional[str] = None
 
 
