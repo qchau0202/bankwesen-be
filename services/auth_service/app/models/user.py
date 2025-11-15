@@ -24,7 +24,7 @@ class PyObjectId(ObjectId):
 class UserModel(BaseModel):
     """User model matching the MongoDB schema."""
     id: Optional[PyObjectId] = Field(alias="_id", default=None)
-    userid: str = Field(..., description="Unique user ID")
+    customerId: str = Field(..., description="Unique customer ID")
     username: str = Field(..., description="Username for login")
     password_hash: str = Field(..., description="Hashed password (bcrypt)")
     role: str = Field(..., description="User role (student, admin, staff)")
@@ -41,7 +41,7 @@ class UserModel(BaseModel):
         json_encoders = {ObjectId: str}
         json_schema_extra = {
             "example": {
-                "userid": "523K0000",
+                "customerId": "523K0000",
                 "username": "student1",
                 "password_hash": "$2b$12$LQv3c1yqBWVHxkd0LHAkCOYz6TtxMQJqhN8/LewY5OMxZJ.hY8h6.",
                 "role": "student",
@@ -54,7 +54,7 @@ class UserModel(BaseModel):
 
 class UserInDB(BaseModel):
     """User model with hashed password for database operations."""
-    userid: str
+    customerId: str
     username: str
     password_hash: str
     role: str

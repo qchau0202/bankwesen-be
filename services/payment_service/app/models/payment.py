@@ -24,15 +24,14 @@ class PyObjectId(ObjectId):
 class PaymentModel(BaseModel):
     """Payment model for payment_db."""
     id: Optional[PyObjectId] = Field(alias="_id", default=None)
-    paymentid: str = Field(..., description="Unique payment ID (PK)")
-    studentid: str = Field(..., description="Foreign key to Student (from tuition_db)")
+    paymentId: str = Field(..., description="Unique payment ID (PK)")
+    customerId: str = Field(..., description="Foreign key to Customer (from auth_db)")
+    tuitionId: str = Field(..., description="Foreign key to Tuition")
     idempotency_key: str = Field(..., description="Unique key to prevent duplicate payments")
-    userid: str = Field(..., description="Foreign key to User (from auth_db)")
-    tuitionid: str = Field(..., description="Foreign key to Tuition")
-    ammount: float = Field(..., description="Payment amount")
+    amount: float = Field(..., description="Payment amount")
     status: str = Field(default="pending", description="Status: pending, completed, failed")
     created_at: Optional[datetime] = Field(default_factory=datetime.utcnow)
-    updated_at: Optional[datetime] = Field(default_factory=datetime.utcnow)
+    expired_at: Optional[datetime] = Field(None, description="Payment expiration date")
 
     class Config:
         populate_by_name = True
@@ -40,12 +39,12 @@ class PaymentModel(BaseModel):
         json_encoders = {ObjectId: str}
         json_schema_extra = {
             "example": {
-                "paymentid": "PAY1731369600001",
-                "studentid": "ST1731369600",
+                "paymentId": "PAY1731369600001",
+                "customerId": "523K0000",
+                "tuitionId": "TU1731369600001",
                 "idempotency_key": "unique-key-12345",
-                "userid": "ST1731369600",
-                "tuitionid": "TU1731369600001",
-                "ammount": 5000.00,
-                "status": "completed"
+                "amount": 5000.00,
+                "status": "completed",
+                "expired_at": "2024-12-31T23:59:59"
             }
         }

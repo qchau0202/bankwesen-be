@@ -5,11 +5,12 @@ This repository contains a simple FastAPI-based microservices stack designed to 
 ## Architecture Overview
 - Gateway (`8000`): entry point and service fan-out
 - Auth Service (`8001`): calls OTP Service
-- OTP Service (`8002`): calls Notification Service
+- OTP Service (`8002`): OTP generation and verification with Redis, calls Notification Service
 - Payment Service (`8003`): calls Auth Service
-- Notification Service (`8004`): calls Tuition Service
+- Notification Service (`8004`): email notifications via SMTP, calls Tuition Service
 - Tuition Service (`8005`): calls Payment Service
 - MongoDB (`27017`): shared database instance (one database per service)
+- Redis (`6379`): OTP storage and session management
 
 All services are packaged with Dockerfiles and orchestrated with `docker-compose`.
 ## Prerequisites
@@ -130,24 +131,38 @@ Each service requires its own `.env` file with the following variables:
 - `JWT_SECRET_KEY`: Secret key for JWT token generation
 - Service URLs: `AUTH_SERVICE_URL`, `OTP_SERVICE_URL`, `PAYMENT_SERVICE_URL`, `NOTIFICATION_SERVICE_URL`, `TUITION_SERVICE_URL`
 
+### OTP Service Specific:
+- `REDIS_URL`: Redis connection string (e.g., redis://redis:6379)
+- `OTP_LENGTH`: Length of OTP code (default: 6)
+- `OTP_EXPIRATION`: OTP expiration time in seconds (default: 60)
+- `OTP_MAX_ATTEMPTS`: Maximum verification attempts (default: 3)
+
+### Notification Service Specific:
+- `SMTP_HOST`: SMTP server host (e.g., smtp.gmail.com)
+- `SMTP_PORT`: SMTP server port (default: 587)
+- `SMTP_USER`: SMTP username/email
+- `SMTP_PASSWORD`: SMTP password or app password
+- `SMTP_FROM_EMAIL`: Sender email address
+
 ## Project Structure
 
 ```
 bankwesen-be/
-├── docker-compose.yml
-├── Makefile
-├── setup.ps1
-├── setup.sh
+├── docker-compose.yml       # Docker orchestration with MongoDB + Redis
+├── Makefile                 # Build and deployment commands
+├── setup.ps1                # Windows setup script
+├── setup.sh                 # Mac/Linux setup script
+├── init_all_databases.py    # Initialize all databases with sample data
 ├── gateway/
 │   ├── Dockerfile
 │   ├── requirements.txt
 │   └── app/main.py
 └── services/
-    ├── auth_service/
-    ├── otp_service/
-    ├── payment_service/
-    ├── notification_service/
-    └── tuition_service/
+    ├── auth_service/         # User authentication with JWT
+    ├── otp_service/          # OTP generation/verification with Redis
+    ├── payment_service/      # Payment processing
+    ├── notification_service/ # Email notifications via SMTP
+    └── tuition_service/      # Tuition fee management
 ```
 
 Each service directory mirrors the gateway layout with its own `Dockerfile`, `requirements.txt`, and FastAPI application module.
