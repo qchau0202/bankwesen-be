@@ -49,13 +49,14 @@ class AuthService:
             expires_delta=access_token_expires
         )
         
-        # Prepare user info (without sensitive data)
+        # Prepare user info
         user_info = {
             "customerId": user.get("customerId"),
             "username": user.get("username"),
             "full_name": user.get("full_name"),
             "email": user.get("email"),
-            "balance": user.get("balance", 0.0)
+            "phone_number": user.get("phone_number"),
+            "balance": user.get("balance", 100000000.0)
         }
         
         return {
