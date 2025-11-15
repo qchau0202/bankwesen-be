@@ -150,6 +150,63 @@ async def get_tuition_record(
     return tuition_record
 
 
+@router.put(
+    "/{tuitionId}/status",
+    response_model=TuitionResponse,
+    responses={
+        200: {
+            "description": "Successfully updated tuition status",
+            "model": TuitionResponse
+        },
+        400: {
+            "description": "Invalid status value",
+            "model": ErrorResponse
+        },
+        404: {
+            "description": "Tuition record not found",
+            "model": ErrorResponse
+        }
+    },
+    summary="Update tuition status (Internal Service Only)",
+    description="""
+    Update the status of a tuition record.
+    This endpoint is intended for internal service use.
+    
+    **API Key Required:**
+    - Must provide API key in `x-api-key` header
+    
+    Valid statuses:
+    - "debt": Student has outstanding tuition
+    - "paid": Tuition has been paid
+    """
+)
+async def update_tuition_status(
+    tuitionId: str,
+    status_update: Dict[str, Any],
+    tuition_service: TuitionService = Depends(get_tuition_service),
+    api_key: str = Depends(verify_api_key)
+) -> TuitionResponse:
+    """
+    Update tuition status.
+    
+    Args:
+        tuitionId: The tuition record ID (e.g., "TU2024110001")
+        status_update: Dictionary containing "status" key with value "debt" or "paid"
+        api_key: API key for service authentication
+        
+    Returns:
+        Updated TuitionResponse
+    """
+    status = status_update.get("status")
+    if not status:
+        raise HTTPException(
+            status_code=400,
+            detail="Missing 'status' field in request body"
+        )
+    
+    return await tuition_service.update_tuition_status(tuitionId, status)
+
+
 @router.get(
     "/",
     summary="Tuition Service Info",
@@ -164,6 +221,7 @@ async def tuition_info():
         "currency": "VND (Vietnamese Dong)",
         "endpoints": {
             "GET /api/tuition/{studentId}": "Get all tuition records for a student",
-            "GET /api/tuition/record/{tuitionId}": "Get specific tuition record by ID"
+            "GET /api/tuition/record/{tuitionId}": "Get specific tuition record by ID",
+            "PUT /api/tuition/{tuitionId}/status": "Update tuition status (Internal)"
         }
     }

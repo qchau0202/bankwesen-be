@@ -36,8 +36,9 @@ class TuitionModel(BaseModel):
     academic_year: str = Field(..., description='Academic year range in the format "YYYY-YYYY" (e.g. "2023-2024")')
     tuition_amount: float = Field(..., description="Tuition amount in Vietnamese Dong (VND)")
     due_date: datetime = Field(..., description="Payment due date")
-    status: str = Field(default="pending", description="Status: pending, partial, paid")
+    status: str = Field(default="debt", description="Status: debt, paid")
     created_at: Optional[datetime] = Field(default_factory=datetime.utcnow)
+    updated_at: Optional[datetime] = Field(default=None)
 
     class Config:
         populate_by_name = True
@@ -53,6 +54,6 @@ class TuitionModel(BaseModel):
                 "academic_year": "2024-2025",
                 "tuition_amount": 15000000.00,
                 "due_date": "2024-12-31T23:59:59",
-                "status": "pending"
+                "status": "debt"
             }
         }

@@ -125,7 +125,7 @@ async def get_current_user_info(current_user: TokenData = Depends(get_current_us
         status="success",
         message="User information retrieved successfully",
         data={
-            "userid": current_user.userid,
+            "customerId": current_user.customerId,
             "username": current_user.username,
         }
     )
@@ -143,11 +143,82 @@ async def verify_token(current_user: TokenData = Depends(get_current_user)):
         status="success",
         message="Token is valid",
         data={
-            "userid": current_user.userid,
+            "customerId": current_user.customerId,
             "username": current_user.username,
             "is_valid": True
         }
     )
+
+
+@router.post(
+    "/deduct-balance",
+    response_model=SuccessResponse,
+    status_code=status.HTTP_200_OK,
+    responses={
+        200: {
+            "description": "Balance deducted successfully",
+            "model": SuccessResponse
+        },
+        400: {
+            "description": "Insufficient balance",
+            "model": ErrorResponse
+        },
+        404: {
+            "description": "Customer not found",
+            "model": ErrorResponse
+        }
+    },
+    summary="Deduct Customer Balance (Internal Service Only)",
+    description="Deduct amount from customer's balance. This endpoint is for internal service use (payment service)."
+)
+async def deduct_balance(
+    balance_data: dict,
+    api_key: str = Depends(verify_api_key)
+):
+    """
+    Deduct amount from customer's balance.
+    
+    Request body should include:
+    - customer_id: Customer ID
+    - amount: Amount to deduct
+    """
+    customer_id = balance_data.get("customer_id")
+    amount = balance_data.get("amount")
+    
+    if not customer_id or amount is None:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="Missing customer_id or amount"
+        )
+    
+    if amount <= 0:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="Amount must be greater than 0"
+        )
+    
+    result = await AuthService.deduct_balance(customer_id, amount)
+    
+    if not result:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail="Customer not found"
+        )
+    
+    if not result.get("success"):
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail=result.get("message", "Failed to deduct balance")
+        )
+    
+    return SuccessResponse(
+        status="success",
+        message=result.get("message"),
+        data=result
+    )
+
+
+
 
 
 

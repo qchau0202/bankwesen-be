@@ -7,3 +7,5 @@ motor
 pydantic
 pydantic-settings
 email-validator
+python-jose[cryptography]
+python-multipart

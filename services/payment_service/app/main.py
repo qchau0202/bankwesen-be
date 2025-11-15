@@ -2,10 +2,11 @@
 from fastapi.middleware.cors import CORSMiddleware
 from app.core.config import settings
 from app.db.mongodb import connect_to_mongo, close_mongo_connection
+from app.api.payment_routes import router as payment_router
 
 app = FastAPI(
     title=settings.SERVICE_NAME,
-    description="Payment Processing Service - Handles tuition payments",
+    description="Payment Processing Service - Handles tuition payments with OTP verification",
     version="1.0.0"
 )
 
@@ -18,11 +19,15 @@ app.add_middleware(
     allow_headers=["*"],
 )
 
+# Include routers
+app.include_router(payment_router)
+
 # Startup event
 @app.on_event("startup")
 async def startup_event():
     await connect_to_mongo()
     print(f"🚀 {settings.SERVICE_NAME} started on port {settings.SERVICE_PORT}")
+    print(f"📋 API Key Security: {'ENABLED' if settings.ENABLE_API_KEY else 'DISABLED'}")
 
 # Shutdown event
 @app.on_event("shutdown")
@@ -34,7 +39,8 @@ async def root():
     return {
         "service": settings.SERVICE_NAME,
         "status": "running",
-        "database": settings.DATABASE_NAME
+        "database": settings.DATABASE_NAME,
+        "api_key_enabled": settings.ENABLE_API_KEY
     }
 
 @app.get("/health")

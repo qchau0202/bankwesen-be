@@ -62,7 +62,8 @@ class TuitionService:
                 tuition_amount=tuition_doc.get("tuition_amount"),
                 due_date=tuition_doc.get("due_date"),
                 status=tuition_doc.get("status", "debt"),
-                created_at=tuition_doc.get("created_at", datetime.utcnow())
+                created_at=tuition_doc.get("created_at", datetime.utcnow()),
+                updated_at=tuition_doc.get("updated_at")
             )
             tuitions.append(tuition_response)
             
@@ -114,5 +115,54 @@ class TuitionService:
             tuition_amount=tuition_doc.get("tuition_amount"),
             due_date=tuition_doc.get("due_date"),
             status=tuition_doc.get("status", "debt"),
-            created_at=tuition_doc.get("created_at", datetime.utcnow())
+            created_at=tuition_doc.get("created_at", datetime.utcnow()),
+            updated_at=tuition_doc.get("updated_at")
         )
+    
+    async def update_tuition_status(self, tuition_id: str, status: str) -> TuitionResponse:
+        """
+        Update the status of a tuition record.
+        
+        Args:
+            tuition_id: The tuition record ID
+            status: New status ("debt" or "paid")
+            
+        Returns:
+            Updated TuitionResponse object
+            
+        Raises:
+            HTTPException: If tuition record not found or invalid status
+        """
+        # Validate status
+        valid_statuses = ["debt", "paid"]
+        if status not in valid_statuses:
+            raise HTTPException(
+                status_code=400,
+                detail=f"Invalid status. Must be one of: {', '.join(valid_statuses)}"
+            )
+        
+        # Check if tuition exists
+        tuition_doc = await self.collection.find_one({"tuitionId": tuition_id})
+        if not tuition_doc:
+            raise HTTPException(
+                status_code=404,
+                detail=f"Tuition record not found: {tuition_id}"
+            )
+        
+        # Update the tuition record
+        result = await self.collection.update_one(
+            {"tuitionId": tuition_id},
+            {"$set": {
+                "status": status,
+                "updated_at": datetime.utcnow()
+            }}
+        )
+        
+        if result.modified_count == 0:
+            raise HTTPException(
+                status_code=500,
+                detail="Failed to update tuition status"
+            )
+        
+        # Return updated tuition
+        return await self.get_tuition_by_id(tuition_id)

@@ -38,47 +38,95 @@ async def insert_sample_tuition():
     # Currency: Vietnamese Dong (VND)
     # Typical university tuition: 10-20 million VND per semester
     sample_tuitions = [
-        # Student 1: Nguyen Van A - Multiple semesters
+        # Student 1: Ly Hung Quoc Chau - Has unpaid tuition from current year
         {
             "tuitionId": "TU2024110001",
             "studentId": "523K0001",
-            "studentName": "Nguyen Van A",
-            "studentEmail": "nguyenvana@student.edu.vn",
+            "studentName": "Ly Hung Quoc Chau",
+            "studentEmail": "quocchau4729@gmail.com",
             "semester": "Semester I",
-            "academic_year": "2024-2025",
-            "tuition_amount": 15000000.00,  # 15 million VND
-            "due_date": now_utc7 + timedelta(days=30),
-            "status": "debt",
-            "created_at": now_utc7
+            "academic_year": "2022-2023",
+            "tuition_amount": 14000000.00,  # 14 million VND
+            "due_date": now_utc7 - timedelta(days=700),
+            "status": "paid",
+            "created_at": now_utc7 - timedelta(days=750)
         },
         {
             "tuitionId": "TU2024110002",
             "studentId": "523K0001",
-            "studentName": "Nguyen Van A",
-            "studentEmail": "nguyenvana@student.edu.vn",
+            "studentName": "Ly Hung Quoc Chau",
+            "studentEmail": "quocchau4729@gmail.com",
             "semester": "Semester II",
-            "academic_year": "2023-2024",
-            "tuition_amount": 15000000.00,  # 15 million VND
-            "due_date": now_utc7 - timedelta(days=30),
+            "academic_year": "2022-2023",
+            "tuition_amount": 14000000.00,  # 14 million VND
+            "due_date": now_utc7 - timedelta(days=550),
             "status": "paid",
-            "created_at": now_utc7 - timedelta(days=150)
+            "created_at": now_utc7 - timedelta(days=600)
         },
         {
             "tuitionId": "TU2024110003",
             "studentId": "523K0001",
-            "studentName": "Nguyen Van A",
-            "studentEmail": "nguyenvana@student.edu.vn",
-            "semester": "Semester III",
+            "studentName": "Ly Hung Quoc Chau",
+            "studentEmail": "quocchau4729@gmail.com",
+            "semester": "Semester I",
+            "academic_year": "2023-2024",
+            "tuition_amount": 15000000.00,  # 15 million VND
+            "due_date": now_utc7 - timedelta(days=400),
+            "status": "paid",
+            "created_at": now_utc7 - timedelta(days=450)
+        },
+        {
+            "tuitionId": "TU2024110004",
+            "studentId": "523K0001",
+            "studentName": "Ly Hung Quoc Chau",
+            "studentEmail": "quocchau4729@gmail.com",
+            "semester": "Semester II",
+            "academic_year": "2023-2024",
+            "tuition_amount": 15000000.00,  # 15 million VND
+            "due_date": now_utc7 - timedelta(days=250),
+            "status": "paid",
+            "created_at": now_utc7 - timedelta(days=300)
+        },
+        {
+            "tuitionId": "TU2024110005",
+            "studentId": "523K0001",
+            "studentName": "Ly Hung Quoc Chau",
+            "studentEmail": "quocchau4729@gmail.com",
+            "semester": "Semester I",
             "academic_year": "2024-2025",
-            "tuition_amount": 8000000.00,  # 8 million VND (summer is usually cheaper)
-            "due_date": now_utc7 + timedelta(days=60),
+            "tuition_amount": 16000000.00,  # 16 million VND
+            "due_date": now_utc7 + timedelta(days=30),
             "status": "debt",
             "created_at": now_utc7
         },
         
-        # Student 2: Tran Thi B - Different status
+        # Student 2: Tran Thi B - All previous years paid, current year unpaid
         {
-            "tuitionId": "TU2024110004",
+            "tuitionId": "TU2024110006",
+            "studentId": "523K0002",
+            "studentName": "Tran Thi B",
+            "studentEmail": "tranthib@student.edu.vn",
+            "semester": "Semester I",
+            "academic_year": "2023-2024",
+            "tuition_amount": 17000000.00,  # 17 million VND
+            "due_date": now_utc7 - timedelta(days=400),
+            "status": "paid",
+            "created_at": now_utc7 - timedelta(days=450)
+        },
+        {
+            "tuitionId": "TU2024110007",
+            "studentId": "523K0002",
+            "studentName": "Tran Thi B",
+            "studentEmail": "tranthib@student.edu.vn",
+            "semester": "Semester II",
+            "academic_year": "2023-2024",
+            "tuition_amount": 17000000.00,  # 17 million VND
+            "due_date": now_utc7 - timedelta(days=250),
+            "status": "paid",
+            "created_at": now_utc7 - timedelta(days=300)
+        },
+        {
+            "tuitionId": "TU2024110008",
             "studentId": "523K0002",
             "studentName": "Tran Thi B",
             "studentEmail": "tranthib@student.edu.vn",
@@ -86,37 +134,25 @@ async def insert_sample_tuition():
             "academic_year": "2024-2025",
             "tuition_amount": 18000000.00,  # 18 million VND
             "due_date": now_utc7 + timedelta(days=45),
-            "status": "partial",
+            "status": "debt",
             "created_at": now_utc7
         },
-        {
-            "tuitionId": "TU2024110005",
-            "studentId": "523K0002",
-            "studentName": "Tran Thi B",
-            "studentEmail": "tranthib@student.edu.vn",
-            "semester": "Semester I",
-            "academic_year": "2023-2024",
-            "tuition_amount": 17000000.00,  # 17 million VND
-            "due_date": now_utc7 - timedelta(days=60),
-            "status": "paid",
-            "created_at": now_utc7 - timedelta(days=200)
-        },
         
-        # Student 3: Le Van C - All paid
+        # Student 3: Le Van C - All paid up to current semester
         {
-            "tuitionId": "TU2024110006",
+            "tuitionId": "TU2024110009",
             "studentId": "523K0003",
             "studentName": "Le Van C",
             "studentEmail": "levanc@student.edu.vn",
             "semester": "Semester II",
             "academic_year": "2023-2024",
             "tuition_amount": 16000000.00,  # 16 million VND
-            "due_date": now_utc7 - timedelta(days=90),
+            "due_date": now_utc7 - timedelta(days=250),
             "status": "paid",
-            "created_at": now_utc7 - timedelta(days=180)
+            "created_at": now_utc7 - timedelta(days=300)
         },
         {
-            "tuitionId": "TU2024110007",
+            "tuitionId": "TU2024110010",
             "studentId": "523K0003",
             "studentName": "Le Van C",
             "studentEmail": "levanc@student.edu.vn",
@@ -128,9 +164,9 @@ async def insert_sample_tuition():
             "created_at": now_utc7 - timedelta(days=10)
         },
         
-        # Student 4: Pham Thi D - New student with debt payment
+        # Student 4: Pham Thi D - New student with current year debt
         {
-            "tuitionId": "TU2024110008",
+            "tuitionId": "TU2024110011",
             "studentId": "523K0004",
             "studentName": "Pham Thi D",
             "studentEmail": "phamthid@student.edu.vn",
@@ -142,29 +178,42 @@ async def insert_sample_tuition():
             "created_at": now_utc7
         },
         
-        # Student 5: Hoang Van E - Overdue payment
+        # Student 5: Hoang Van E - Has unpaid fees from BOTH old and current year
+        # When paying, MUST pay all unpaid fees together
         {
-            "tuitionId": "TU2024110009",
+            "tuitionId": "TU2024110012",
+            "studentId": "523K0005",
+            "studentName": "Hoang Van E",
+            "studentEmail": "hoangvane@student.edu.vn",
+            "semester": "Semester I",
+            "academic_year": "2023-2024",
+            "tuition_amount": 14000000.00,  # 14 million VND
+            "due_date": now_utc7 - timedelta(days=400),
+            "status": "debt",  # Old debt - must be paid first
+            "created_at": now_utc7 - timedelta(days=450)
+        },
+        {
+            "tuitionId": "TU2024110013",
             "studentId": "523K0005",
             "studentName": "Hoang Van E",
             "studentEmail": "hoangvane@student.edu.vn",
             "semester": "Semester II",
             "academic_year": "2023-2024",
             "tuition_amount": 14000000.00,  # 14 million VND
-            "due_date": now_utc7 - timedelta(days=15),
-            "status": "debt",
-            "created_at": now_utc7 - timedelta(days=150)
+            "due_date": now_utc7 - timedelta(days=250),
+            "status": "debt",  # Old debt - must be paid with above
+            "created_at": now_utc7 - timedelta(days=300)
         },
         {
-            "tuitionId": "TU2024110010",
+            "tuitionId": "TU2024110014",
             "studentId": "523K0005",
             "studentName": "Hoang Van E",
             "studentEmail": "hoangvane@student.edu.vn",
             "semester": "Semester I",
             "academic_year": "2024-2025",
-            "tuition_amount": 14500000.00,  # 14.5 million VND
+            "tuition_amount": 15000000.00,  # 15 million VND
             "due_date": now_utc7 + timedelta(days=25),
-            "status": "debt",
+            "status": "debt",  # Current year debt - must pay all together
             "created_at": now_utc7
         }
     ]
