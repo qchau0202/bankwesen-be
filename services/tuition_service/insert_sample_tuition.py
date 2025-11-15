@@ -48,7 +48,7 @@ async def insert_sample_tuition():
             "academic_year": "2024-2025",
             "tuition_amount": 15000000.00,  # 15 million VND
             "due_date": now_utc7 + timedelta(days=30),
-            "status": "pending",
+            "status": "debt",
             "created_at": now_utc7
         },
         {
@@ -68,11 +68,11 @@ async def insert_sample_tuition():
             "studentId": "523K0001",
             "studentName": "Nguyen Van A",
             "studentEmail": "nguyenvana@student.edu.vn",
-            "semester": "Summer Semester",
+            "semester": "Semester III",
             "academic_year": "2024-2025",
             "tuition_amount": 8000000.00,  # 8 million VND (summer is usually cheaper)
             "due_date": now_utc7 + timedelta(days=60),
-            "status": "pending",
+            "status": "debt",
             "created_at": now_utc7
         },
         
@@ -128,7 +128,7 @@ async def insert_sample_tuition():
             "created_at": now_utc7 - timedelta(days=10)
         },
         
-        # Student 4: Pham Thi D - New student with pending payment
+        # Student 4: Pham Thi D - New student with debt payment
         {
             "tuitionId": "TU2024110008",
             "studentId": "523K0004",
@@ -138,7 +138,7 @@ async def insert_sample_tuition():
             "academic_year": "2024-2025",
             "tuition_amount": 20000000.00,  # 20 million VND (international program)
             "due_date": now_utc7 + timedelta(days=15),
-            "status": "pending",
+            "status": "debt",
             "created_at": now_utc7
         },
         
@@ -152,7 +152,7 @@ async def insert_sample_tuition():
             "academic_year": "2023-2024",
             "tuition_amount": 14000000.00,  # 14 million VND
             "due_date": now_utc7 - timedelta(days=15),
-            "status": "pending",
+            "status": "debt",
             "created_at": now_utc7 - timedelta(days=150)
         },
         {
@@ -164,7 +164,7 @@ async def insert_sample_tuition():
             "academic_year": "2024-2025",
             "tuition_amount": 14500000.00,  # 14.5 million VND
             "due_date": now_utc7 + timedelta(days=25),
-            "status": "pending",
+            "status": "debt",
             "created_at": now_utc7
         }
     ]
@@ -181,7 +181,7 @@ async def insert_sample_tuition():
     
     # Display summary statistics
     total_records = await db.Tuition.count_documents({})
-    pending_records = await db.Tuition.count_documents({"status": "pending"})
+    debt_records = await db.Tuition.count_documents({"status": "debt"})
     paid_records = await db.Tuition.count_documents({"status": "paid"})
     partial_records = await db.Tuition.count_documents({"status": "partial"})
     
@@ -196,7 +196,7 @@ async def insert_sample_tuition():
     
     print(f"\n📊 Database Summary:")
     print(f"   Total Tuition Records: {total_records}")
-    print(f"   - Pending: {pending_records}")
+    print(f"   - debt: {debt_records}")
     print(f"   - Paid: {paid_records}")
     print(f"   - Partial: {partial_records}")
     print(f"\n💰 Amounts by Status (VND):")

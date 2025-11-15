@@ -61,13 +61,13 @@ class TuitionService:
                 academic_year=tuition_doc.get("academic_year"),
                 tuition_amount=tuition_doc.get("tuition_amount"),
                 due_date=tuition_doc.get("due_date"),
-                status=tuition_doc.get("status", "pending"),
+                status=tuition_doc.get("status", "debt"),
                 created_at=tuition_doc.get("created_at", datetime.utcnow())
             )
             tuitions.append(tuition_response)
             
             # Calculate total debt (only pending and partial payments)
-            if tuition_doc.get("status") in ["pending", "partial"]:
+            if tuition_doc.get("status") in ["debt"]:
                 total_debt += tuition_doc.get("tuition_amount", 0.0)
         
         # Sort tuitions by academic year and semester
@@ -113,6 +113,6 @@ class TuitionService:
             academic_year=tuition_doc.get("academic_year"),
             tuition_amount=tuition_doc.get("tuition_amount"),
             due_date=tuition_doc.get("due_date"),
-            status=tuition_doc.get("status", "pending"),
+            status=tuition_doc.get("status", "debt"),
             created_at=tuition_doc.get("created_at", datetime.utcnow())
         )
