@@ -17,7 +17,7 @@ load_dotenv()
 # MongoDB configuration from environment variables
 MONGODB_URL = os.getenv("MONGODB_URL")
 DATABASE_NAME = os.getenv("DATABASE_NAME", "auth_db")
-USERS_COLLECTION = os.getenv("USERS_COLLECTION", "User")
+USERS_COLLECTION = os.getenv("USERS_COLLECTION", "users")
 
 # Validate MongoDB URL is loaded
 if not MONGODB_URL:
@@ -52,22 +52,24 @@ async def insert_test_users():
     # Define test users with hashed passwords
     test_users = [
         {
-            "userid": "523K0001",
+            "customerid": "523K0013",
             "username": "student1",
             "password_hash": hash_password("password123"),
-            "full_name": "John Doe",
-            "email": "john.doe@university.edu",
-            "balance": 5000.0,
+            "full_name": "Duong Thanh Long",
+            "email": "thanhlongduong6a3@gmail.com",
+            "phone_number": "0905877708",
+            "balance": 50000000.0,
             "created_at": datetime.utcnow(),
             "updated_at": datetime.utcnow()
         },
         {
-            "userid": "523K0002",
+            "customerid": "523K0002",
             "username": "student2",
             "password_hash": hash_password("password123"),
-            "full_name": "Jane Smith",
-            "email": "jane.smith@university.edu",
-            "balance": 3000.0,
+            "full_name": "Le Huu Thanh",
+            "email": "duongthanhlong220805@gmail.com",
+            "phone_number": "0387504809",
+            "balance": 10000000.0,
             "created_at": datetime.utcnow(),
             "updated_at": datetime.utcnow()
         }

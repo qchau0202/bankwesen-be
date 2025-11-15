@@ -22,6 +22,8 @@ async def send_otp_email(request: EmailOTPRequest):
     This endpoint is called by the OTP service after generating an OTP code
     """
     try:
+        logger.info(f"Received request to send OTP email to {request.email} for payment {request.payment_id}")
+        
         success = await email_service.send_otp_email(
             email=request.email,
             otp_code=request.otp_code,

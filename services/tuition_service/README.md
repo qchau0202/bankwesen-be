@@ -58,12 +58,6 @@ python insert_sample_tuition.py
 
 This will create sample tuition records for 5 students with various payment statuses (pending, paid, partial).
 
-### Initialize Database (Alternative)
-
-```bash
-python init_tuition_db.py
-```
-
 ## Testing
 
 ### Authentication Flow

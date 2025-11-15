@@ -4,7 +4,7 @@ from datetime import datetime
 
 
 class TuitionResponse(BaseModel):
-    """Response schema for tuition information."""
+    """Response model for tuition information."""
     tuitionId: str
     studentId: str
     studentName: str
@@ -15,6 +15,7 @@ class TuitionResponse(BaseModel):
     due_date: datetime
     status: str
     created_at: datetime
+    updated_at: Optional[datetime] = None
     
     class Config:
         json_schema_extra = {

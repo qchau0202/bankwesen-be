@@ -37,9 +37,9 @@ class AuthService:
         # Prepare token data with important information
         token_data = {
             "sub": user.get("username"),  # Subject (username)
-            "userid": user.get("userid"),
+            "customerId": user.get("customerId"),
             "username": user.get("username"),
-            "email": user.get("email")
+            "email": user.get("email"),
         }
         
         # Create access token
@@ -51,7 +51,7 @@ class AuthService:
         
         # Prepare user info (without sensitive data)
         user_info = {
-            "userid": user.get("userid"),
+            "customerId": user.get("customerId"),
             "username": user.get("username"),
             "full_name": user.get("full_name"),
             "email": user.get("email"),
@@ -103,18 +103,18 @@ class AuthService:
         if existing_email:
             return None
         
-        # Generate userid (format: ST + timestamp suffix)
-        userid = f"ST{str(int(datetime.utcnow().timestamp()))[-6:]}"
+        # Generate customerId (format: ST + timestamp suffix)
+        customerId = f"ST{str(int(datetime.utcnow().timestamp()))[-6:]}"
         
         # Create new user document
         new_user = {
-            "userid": userid,
+            "customerId": customerId,
             "username": register_data.username,
             "password_hash": get_password_hash(register_data.password),
             "full_name": register_data.full_name,
             "email": register_data.email,
             "phone_number": register_data.phone_number,
-            "balance": 0.0,
+            "balance": 100000000.0,
             "created_at": datetime.utcnow(),
             "updated_at": datetime.utcnow()
         }
@@ -130,4 +130,60 @@ class AuthService:
         
         # Create and return token for the new user
         return AuthService.create_user_token(created_user)
+    
+    @staticmethod
+    async def deduct_balance(customer_id: str, amount: float) -> Optional[Dict[str, Any]]:
+        """
+        Deduct amount from customer's balance.
+        
+        Args:
+            customer_id: Customer ID
+            amount: Amount to deduct
+            
+        Returns:
+            Updated user info if successful, None otherwise
+        """
+        users_collection = get_users_collection()
+        
+        # Find user by customerId
+        user = await users_collection.find_one({"customerId": customer_id})
+        
+        if not user:
+            return None
+        
+        current_balance = user.get("balance", 0.0)
+        
+        # Check if user has sufficient balance
+        if current_balance < amount:
+            return {
+                "success": False,
+                "message": f"Insufficient balance. Current: {current_balance}, Required: {amount}",
+                "current_balance": current_balance,
+                "required_amount": amount
+            }
+        
+        # Deduct balance
+        new_balance = current_balance - amount
+        
+        # Update user balance
+        result = await users_collection.update_one(
+            {"customerId": customer_id},
+            {
+                "$set": {
+                    "balance": new_balance,
+                    "updated_at": datetime.utcnow()
+                }
+            }
+        )
+        
+        if result.modified_count == 0:
+            return None
+        
+        return {
+            "success": True,
+            "message": "Balance deducted successfully",
+            "previous_balance": current_balance,
+            "deducted_amount": amount,
+            "new_balance": new_balance
+        }
         

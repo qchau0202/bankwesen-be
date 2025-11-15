@@ -1,5 +1,8 @@
-from fastapi import Header, HTTPException
+from fastapi import Header, HTTPException, Depends
+from motor.motor_asyncio import AsyncIOMotorDatabase
 from app.core.config import settings
+from app.db.mongodb import get_database
+from app.services.payment_service import PaymentService
 
 
 async def verify_api_key(x_api_key: str = Header(...)):
@@ -20,3 +23,15 @@ async def verify_api_key(x_api_key: str = Header(...)):
         )
     
     return True
+
+
+async def get_payment_service_dependency(
+    db: AsyncIOMotorDatabase = Depends(get_database)
+) -> PaymentService:
+    """
+    Dependency to get payment service instance.
+    
+    Returns:
+        PaymentService instance
+    """
+    return PaymentService(db)

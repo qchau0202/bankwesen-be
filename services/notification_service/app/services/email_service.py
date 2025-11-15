@@ -243,7 +243,7 @@ class EmailService:
                     <h2>Transaction Successful</h2>
                     <p>{message}</p>
                     
-                    <div class="amount">${amount:,.2f}</div>
+                    <div class="amount">{amount:,.2f}VND</div>
                     
                     <div class="info">
                         <strong>Transaction Details:</strong><br>

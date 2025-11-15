@@ -51,7 +51,7 @@ class TokenResponse(BaseModel):
                 "token_type": "bearer",
                 "expires_in": 1800,
                 "user_info": {
-                    "userid": "523K0000",
+                    "customerId": "523K0000",
                     "username": "student1",
                     "full_name": "John Doe",
                     "email": "john.doe@example.com"
@@ -62,7 +62,7 @@ class TokenResponse(BaseModel):
 
 class TokenData(BaseModel):
     """Token data decoded from JWT."""
-    userid: Optional[str] = None
+    customerId: Optional[str] = None
     username: Optional[str] = None
 
 

@@ -32,6 +32,8 @@ async def request_otp(
     Flow: User requests OTP -> System generates OTP -> Sends email (if email provided)
     """
     try:
+        logger.info(f"Received OTP request for payment_id={request.payment_id}, email={request.email}")
+        
         # Check if payment is locked
         is_locked = await otp_service.is_payment_locked(request.payment_id)
         if is_locked:
@@ -50,9 +52,12 @@ async def request_otp(
         # Send OTP via email using notification service
         if request.email:
             try:
+                notification_url = f"{settings.NOTIFICATION_SERVICE_URL}/api/notification/email-otp"
+                logger.info(f"Sending OTP email to {request.email} via {notification_url}")
+                
                 async with httpx.AsyncClient() as client:
                     notification_response = await client.post(
-                        f"{settings.NOTIFICATION_SERVICE_URL}/api/notification/email-otp",
+                        notification_url,
                         json={
                             "email": request.email,
                             "otp_code": otp_code,
@@ -67,16 +72,18 @@ async def request_otp(
                     if notification_response.status_code != 200:
                         logger.warning(f"Failed to send OTP email: {notification_response.text}")
                         # Continue anyway, log OTP for testing
-                        logger.info(f"OTP for payment {request.payment_id}: {otp_code}")
+                        logger.info(f"⚠️ OTP for payment {request.payment_id}: {otp_code}")
                     else:
-                        logger.info(f"OTP email sent successfully to {request.email}")
+                        logger.info(f"✅ OTP email sent successfully to {request.email}")
+                        # Log OTP for development/testing purposes
+                        logger.info(f"🔑 OTP CODE for payment {request.payment_id}: {otp_code}")
             except Exception as e:
                 logger.error(f"Error sending OTP email: {e}")
                 # Log OTP for testing purposes
-                logger.info(f"OTP for payment {request.payment_id}: {otp_code}")
+                logger.info(f"⚠️ OTP for payment {request.payment_id}: {otp_code}")
         else:
             # No email provided, log OTP
-            logger.info(f"OTP for payment {request.payment_id}: {otp_code}")
+            logger.info(f"🔑 OTP CODE for payment {request.payment_id}: {otp_code}")
         
         return OTPResponse(
             success=True,
@@ -115,10 +122,14 @@ async def verify_otp(
         - Locked: Too many failed attempts, payment is canceled
     """
     try:
+        logger.info(f"Verifying OTP for payment_id={request.payment_id}, code={request.otp_code}")
+        
         is_valid, message, attempts_remaining = await otp_service.verify_otp(
             request.payment_id,
             request.otp_code
         )
+        
+        logger.info(f"OTP verification result: valid={is_valid}, message={message}, attempts_remaining={attempts_remaining}")
         
         if is_valid:
             return OTPVerifyResponse(
