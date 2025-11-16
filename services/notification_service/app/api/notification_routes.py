@@ -111,26 +111,4 @@ async def send_transaction_email(request: EmailTransactionRequest):
             detail=f"Failed to send transaction email: {str(e)}"
         )
 
-@router.get("/test-email")
-async def test_email_configuration():
-    """
-    Test email configuration
-    
-    This endpoint can be used to verify that the email service is configured correctly
-    """
-    try:
-        from app.core.config import settings
-        
-        return {
-            "smtp_configured": bool(settings.SMTP_HOST and settings.SMTP_PASSWORD),
-            "smtp_host": settings.SMTP_HOST,
-            "smtp_port": settings.SMTP_PORT,
-            "smtp_user": settings.SMTP_USER,
-            "from_name": settings.SMTP_FROM_NAME
-        }
-    except Exception as e:
-        logger.error(f"Error testing email configuration: {e}")
-        raise HTTPException(
-            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
-            detail=f"Failed to test email configuration: {str(e)}"
-        )
+
