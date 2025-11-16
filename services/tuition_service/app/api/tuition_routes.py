@@ -83,7 +83,7 @@ async def get_student_tuition(
     # Allow any authenticated student to view tuition records
     # This enables students to help pay for each other's tuition
     
-    return await tuition_service.get_student_tuitions(studentId)
+    return await tuition_service.getStudentTuitionsAsync(studentId)
 
 
 @router.get(
@@ -145,7 +145,7 @@ async def get_tuition_record(
     """
     # Allow any authenticated student to view tuition records
     # This enables students to help pay for each other's tuition
-    tuition_record = await tuition_service.get_tuition_by_id(tuitionId)
+    tuition_record = await tuition_service.getTuitionByIdAsync(tuitionId)
     
     return tuition_record
 
@@ -204,7 +204,7 @@ async def update_tuition_status(
             detail="Missing 'status' field in request body"
         )
     
-    return await tuition_service.update_tuition_status(tuitionId, status)
+    return await tuition_service.updateTuitionStatusAsync(tuitionId, status)
 
 
 @router.get(

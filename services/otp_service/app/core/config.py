@@ -21,7 +21,6 @@ class Settings(BaseSettings):
     
     # External Services
     NOTIFICATION_SERVICE_URL: str
-    MONGODB_URL: Optional[str] = None
     
     # API Key Configuration
     API_KEY: str

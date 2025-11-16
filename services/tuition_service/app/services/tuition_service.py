@@ -13,11 +13,11 @@ class TuitionService:
         self.db = database
         self.collection = database.tuitions
     
-    def _format_currency(self, amount: float) -> str:
+    def _formatCurrency(self, amount: float) -> str:
         """Format amount to VND currency string."""
         return f"{amount:,.0f} VND"
     
-    async def get_student_tuitions(self, student_id: str) -> StudentTuitionListResponse:
+    async def getStudentTuitionsAsync(self, student_id: str) -> StudentTuitionListResponse:
         """
         Fetch all tuition records for a specific student.
         
@@ -81,10 +81,10 @@ class TuitionService:
             tuitions=tuitions,
             total_tuitions=len(tuitions),
             total_debt=total_debt,
-            total_debt_vnd=self._format_currency(total_debt)
+            total_debt_vnd=self._formatCurrency(total_debt)
         )
     
-    async def get_tuition_by_id(self, tuition_id: str) -> TuitionResponse:
+    async def getTuitionByIdAsync(self, tuition_id: str) -> TuitionResponse:
         """
         Fetch a specific tuition record by tuition ID.
         
@@ -119,7 +119,7 @@ class TuitionService:
             updated_at=tuition_doc.get("updated_at")
         )
     
-    async def update_tuition_status(self, tuition_id: str, status: str) -> TuitionResponse:
+    async def updateTuitionStatusAsync(self, tuition_id: str, status: str) -> TuitionResponse:
         """
         Update the status of a tuition record.
         
@@ -165,4 +165,4 @@ class TuitionService:
             )
         
         # Return updated tuition
-        return await self.get_tuition_by_id(tuition_id)
+        return await self.getTuitionByIdAsync(tuition_id)

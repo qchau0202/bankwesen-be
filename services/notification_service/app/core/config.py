@@ -17,7 +17,6 @@ class Settings(BaseSettings):
     
     # External Services
     TUITION_SERVICE_URL: str
-    MONGODB_URL: str
     
     # API Key Configuration
     API_KEY: str

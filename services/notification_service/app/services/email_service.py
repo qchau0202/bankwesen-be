@@ -10,7 +10,7 @@ class EmailService:
     """Service for sending emails"""
     
     @staticmethod
-    async def send_email(to_email: str, subject: str, html_content: str) -> bool:
+    async def sendEmailAsync(to_email: str, subject: str, html_content: str) -> bool:
         """
         Send email using SMTP
         
@@ -51,7 +51,7 @@ class EmailService:
             return False
     
     @staticmethod
-    def generate_otp_email(otp_code: str, expires_in: int, payment_id: str, amount: float) -> str:
+    def generateOtpEmail(otp_code: str, expires_in: int, payment_id: str, amount: float) -> str:
         """Generate HTML content for OTP email"""
         return f"""
         <!DOCTYPE html>
@@ -148,7 +148,7 @@ class EmailService:
         """
     
     @staticmethod
-    def generate_transaction_email(
+    def generateTransactionEmail(
         recipient_name: str,
         payer_name: str,
         transaction_id: str,
@@ -298,7 +298,7 @@ class EmailService:
         </html>
         """
     
-    async def send_otp_email(
+    async def sendOtpEmailAsync(
         self,
         email: str,
         otp_code: str,
@@ -308,10 +308,10 @@ class EmailService:
     ) -> bool:
         """Send OTP email to user"""
         subject = f"Your OTP Code - {otp_code}"
-        html_content = self.generate_otp_email(otp_code, expires_in, payment_id, amount)
-        return await self.send_email(email, subject, html_content)
+        html_content = self.generateOtpEmail(otp_code, expires_in, payment_id, amount)
+        return await self.sendEmailAsync(email, subject, html_content)
     
-    async def send_transaction_email(
+    async def sendTransactionEmailAsync(
         self,
         recipient_email: str,
         payer_email: str,
@@ -336,11 +336,11 @@ class EmailService:
             Tuple of (customer_email_sent, student_email_sent)
         """
         # Always send to customer (payer)
-        customer_html = self.generate_transaction_email(
+        customer_html = self.generateTransactionEmail(
             recipient_name, payer_name, transaction_id, payment_id,
             amount, timestamp, tuition_info, is_payer=True
         )
-        customer_sent = await self.send_email(
+        customer_sent = await self.sendEmailAsync(
             payer_email,
             "Payment Confirmation - Transaction Successful",
             customer_html
@@ -348,11 +348,11 @@ class EmailService:
         logger.info(f"Sent transaction email to customer (payer) {payer_email}")
         
         # Always send to student (recipient) - even if same email as customer
-        student_html = self.generate_transaction_email(
+        student_html = self.generateTransactionEmail(
             recipient_name, payer_name, transaction_id, payment_id,
             amount, timestamp, tuition_info, is_payer=False
         )
-        student_sent = await self.send_email(
+        student_sent = await self.sendEmailAsync(
             recipient_email,
             "Payment Received - Tuition Fee Paid",
             student_html
