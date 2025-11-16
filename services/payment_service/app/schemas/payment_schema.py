@@ -5,33 +5,17 @@ from datetime import datetime
 
 # Request Schemas
 class PaymentCreateRequest(BaseModel):
-    """Request schema for creating a new payment. Customer ID is extracted from JWT token."""
-    tuitionIds: Union[str, List[str]] = Field(
-        ..., 
-        description="Single tuition ID or list of tuition IDs to be paid. Use 'all' to pay all unpaid tuitions for the student."
-    )
-    studentId: Optional[str] = Field(
-        None,
-        description="Student ID whose tuitions to pay. Required when tuitionIds='all'. If not provided, uses the authenticated user's ID from JWT token."
+    """Request schema for creating a new payment. Customer ID is extracted from JWT token. Only requires studentId - automatically pays all debt tuitions."""
+    studentId: str = Field(
+        ...,
+        description="Student ID whose debt tuitions to pay. The system will automatically fetch and pay all unpaid tuitions for this student."
     )
     
     class Config:
         json_schema_extra = {
-            "examples": [
-                {
-                    "tuitionIds": "TU1731369600001"
-                },
-                {
-                    "tuitionIds": ["TU1731369600001", "TU1731369600002"]
-                },
-                {
-                    "tuitionIds": "all",
-                    "studentId": "523K0001"
-                },
-                {
-                    "tuitionIds": "all"
-                }
-            ]
+            "example": {
+                "studentId": "523K0001"
+            }
         }
 
 

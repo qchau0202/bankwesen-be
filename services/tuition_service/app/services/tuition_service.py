@@ -30,8 +30,8 @@ class TuitionService:
         Raises:
             HTTPException: If student not found or no tuition records exist
         """
-        # Fetch all tuition records for the student
-        cursor = self.collection.find({"studentId": student_id})
+        # Fetch all tuition records for the student (case-insensitive)
+        cursor = self.collection.find({"studentId": {"$regex": f"^{student_id}$", "$options": "i"}})
         tuitions_data = await cursor.to_list(length=None)
         
         if not tuitions_data:
@@ -97,7 +97,7 @@ class TuitionService:
         Raises:
             HTTPException: If tuition record not found
         """
-        tuition_doc = await self.collection.find_one({"tuitionId": tuition_id})
+        tuition_doc = await self.collection.find_one({"tuitionId": {"$regex": f"^{tuition_id}$", "$options": "i"}})
         
         if not tuition_doc:
             raise HTTPException(
@@ -141,17 +141,17 @@ class TuitionService:
                 detail=f"Invalid status. Must be one of: {', '.join(valid_statuses)}"
             )
         
-        # Check if tuition exists
-        tuition_doc = await self.collection.find_one({"tuitionId": tuition_id})
+        # Check if tuition exists (case-insensitive)
+        tuition_doc = await self.collection.find_one({"tuitionId": {"$regex": f"^{tuition_id}$", "$options": "i"}})
         if not tuition_doc:
             raise HTTPException(
                 status_code=404,
                 detail=f"Tuition record not found: {tuition_id}"
             )
         
-        # Update the tuition record
+        # Update the tuition record (case-insensitive)
         result = await self.collection.update_one(
-            {"tuitionId": tuition_id},
+            {"tuitionId": {"$regex": f"^{tuition_id}$", "$options": "i"}},
             {"$set": {
                 "status": status,
                 "updated_at": datetime.utcnow()
