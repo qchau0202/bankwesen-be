@@ -62,7 +62,7 @@ async def insert_test_users():
     # Define test users with hashed passwords
     test_users = [
         {
-            "customerid": "523K0013",
+            "customerId": "523K0013",
             "username": "student1",
             "password_hash": hash_password("password123"),
             "full_name": "Duong Thanh Long",
@@ -73,10 +73,10 @@ async def insert_test_users():
             "updated_at": datetime.utcnow()
         },
         {
-            "customerid": "523K0002",
+            "customerId": "523K0001",
             "username": "student2",
             "password_hash": hash_password("password123"),
-            "full_name": "Le Huu Thanh",
+            "full_name": "Ly Hung Quoc Chau",
             "email": "duongthanhlong220805@gmail.com",
             "phone_number": "0387504809",
             "balance": 10000000.0,

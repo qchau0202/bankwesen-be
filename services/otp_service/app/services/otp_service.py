@@ -49,7 +49,7 @@ class OTPService:
         otp_data = OTPData(
             otp_code=otp_code,
             payment_id=request.payment_id,
-            tuition_id=request.tuition_id,
+            tuition_ids=request.tuition_ids,
             user_id=request.user_id,
             amount=request.amount,
             attempts=0,
@@ -235,7 +235,7 @@ class OTPService:
         # Generate new OTP request from existing data
         request = OTPRequest(
             payment_id=payment_id,
-            tuition_id=otp_data.tuition_id,
+            tuition_ids=otp_data.tuition_ids,
             user_id=otp_data.user_id,
             amount=otp_data.amount,
             email=otp_data.email

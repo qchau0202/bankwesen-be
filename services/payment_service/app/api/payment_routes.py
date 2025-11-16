@@ -49,6 +49,8 @@ async def create_payment(
     """
     Create a new payment for a tuition.
     
+    Customer ID and email are automatically extracted from the JWT token.
+    
     Flow: OTP Page -> Message Broker (notify other services) -> Lock service
     
     - Locks the payment to allow only one payment per tuition per customer
@@ -56,18 +58,27 @@ async def create_payment(
     - Notifies other services via message broker
     """
     try:
-        logger.info(f"Creating payment for customer {request.customerId}, tuition {request.tuitionId}")
-        
-        # Extract JWT token for internal service calls and user email
-        auth_token = credentials.credentials
+        # Extract customer ID and email from JWT token
+        customer_id = current_user.get("customerId")
         user_email = current_user.get("email")
         
-        payment = await payment_service.create_payment(request, auth_token, user_email)
+        if not customer_id:
+            raise HTTPException(
+                status_code=status.HTTP_400_BAD_REQUEST,
+                detail="Customer ID not found in authentication token"
+            )
+        
+        logger.info(f"Creating payment for customer {customer_id}, tuitions {request.tuitionIds}")
+        
+        # Extract JWT token for internal service calls
+        auth_token = credentials.credentials
+        
+        payment = await payment_service.create_payment(request, auth_token, customer_id, user_email)
         
         return PaymentResponse(
             paymentId=payment.paymentId,
             customerId=payment.customerId,
-            tuitionId=payment.tuitionId,
+            tuitionIds=payment.tuitionIds,
             idempotency_key=payment.idempotency_key,
             amount=payment.amount,
             status=payment.status,
@@ -157,7 +168,8 @@ async def verify_payment_otp(
     paymentID: str,
     request: OTPVerifyRequest,
     payment_service: PaymentService = Depends(get_payment_service),
-    current_user: Dict[str, Any] = Depends(get_current_user)
+    current_user: Dict[str, Any] = Depends(get_current_user),
+    credentials: HTTPAuthorizationCredentials = Depends(security)
 ):
     """
     Verify OTP and complete payment.
@@ -175,7 +187,10 @@ async def verify_payment_otp(
     try:
         logger.info(f"Verifying OTP for payment {paymentID}")
         
-        payment = await payment_service.verify_otp(paymentID, request.otp_code)
+        # Extract JWT token for internal service calls
+        auth_token = credentials.credentials
+        
+        payment = await payment_service.verify_otp(paymentID, request.otp_code, auth_token)
         
         return OTPVerifyResponse(
             success=True,
@@ -183,7 +198,7 @@ async def verify_payment_otp(
             payment=PaymentResponse(
                 paymentId=payment.paymentId,
                 customerId=payment.customerId,
-                tuitionId=payment.tuitionId,
+                tuitionIds=payment.tuitionIds,
                 idempotency_key=payment.idempotency_key,
                 amount=payment.amount,
                 status=payment.status,
@@ -281,7 +296,7 @@ async def get_payment(
         return PaymentResponse(
             paymentId=payment.paymentId,
             customerId=payment.customerId,
-            tuitionId=payment.tuitionId,
+            tuitionIds=payment.tuitionIds,
             idempotency_key=payment.idempotency_key,
             amount=payment.amount,
             status=payment.status,

@@ -64,7 +64,8 @@ async def send_transaction_email(request: EmailTransactionRequest):
     2. The person whose tuition was paid (recipient) - if different from payer
     """
     try:
-        payer_sent, recipient_sent = await email_service.send_transaction_email(
+        logger.info(f"📧 Received transaction email request: payer={request.payer_email}, recipient={request.recipient_email}, is_self_payment={request.is_self_payment}")
+        customer_sent, student_sent = await email_service.send_transaction_email(
             recipient_email=request.recipient_email,
             payer_email=request.payer_email,
             recipient_name=request.recipient_name,
@@ -73,19 +74,26 @@ async def send_transaction_email(request: EmailTransactionRequest):
             payment_id=request.payment_id,
             amount=request.amount,
             timestamp=request.timestamp,
+            is_self_payment=request.is_self_payment,
             tuition_info=request.tuition_info
         )
         
         emails_sent = []
-        if payer_sent:
+        if customer_sent:
             emails_sent.append(request.payer_email)
-        if recipient_sent and request.payer_email != request.recipient_email:
-            emails_sent.append(request.recipient_email)
+        if student_sent:
+            # Add student email only if different from customer email
+            if request.payer_email != request.recipient_email:
+                emails_sent.append(request.recipient_email)
         
-        if payer_sent or recipient_sent:
+        if customer_sent or student_sent:
+            if request.payer_email == request.recipient_email:
+                message = f"Transaction emails sent to {request.payer_email} (both customer and student)"
+            else:
+                message = f"Transaction emails sent to customer ({request.payer_email}) and student ({request.recipient_email})"
             return EmailResponse(
                 success=True,
-                message=f"Transaction confirmation email(s) sent to {len(emails_sent)} recipient(s)",
+                message=message,
                 email_sent_to=emails_sent
             )
         else:

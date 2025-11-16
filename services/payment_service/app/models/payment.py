@@ -1,4 +1,4 @@
-from typing import Optional
+from typing import Optional, List
 from pydantic import BaseModel, Field
 from datetime import datetime
 from bson import ObjectId
@@ -26,9 +26,9 @@ class PaymentModel(BaseModel):
     id: Optional[PyObjectId] = Field(alias="_id", default=None)
     paymentId: str = Field(..., description="Unique payment ID (PK)")
     customerId: str = Field(..., description="Foreign key to Customer (from auth_db)")
-    tuitionId: str = Field(..., description="Foreign key to Tuition")
+    tuitionIds: List[str] = Field(..., description="List of tuition IDs to be paid")
     idempotency_key: str = Field(..., description="Unique key to prevent duplicate payments")
-    amount: float = Field(..., description="Payment amount")
+    amount: float = Field(..., description="Total payment amount")
     status: str = Field(default="pending", description="Status: pending, completed, failed, cancelled")
     otp_attempts: int = Field(default=0, description="Number of OTP verification attempts")
     is_locked: bool = Field(default=False, description="Whether payment is locked due to multiple failures")
@@ -43,9 +43,9 @@ class PaymentModel(BaseModel):
             "example": {
                 "paymentId": "PAY1731369600001",
                 "customerId": "523K0000",
-                "tuitionId": "TU1731369600001",
+                "tuitionIds": ["TU1731369600001", "TU1731369600002"],
                 "idempotency_key": "unique-key-12345",
-                "amount": 5000000.00,
+                "amount": 10000000.00,
                 "status": "completed",
                 "otp_attempts": 1,
                 "is_locked": False,
