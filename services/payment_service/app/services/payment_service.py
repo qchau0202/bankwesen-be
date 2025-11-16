@@ -711,10 +711,10 @@ class PaymentService:
                 for tuition in tuition_details:
                     tuition_list.append({
                         "tuition_id": tuition.get("tuitionId"),
-                        "amount": tuition.get("amount", 0),
+                        "amount": tuition.get("tuition_amount", 0),
                         "academic_year": tuition.get("academic_year", "N/A"),
                         "semester": tuition.get("semester", "N/A"),
-                        "description": tuition.get("description", "Tuition Fee")
+                        "description": f"Tuition Fee - {tuition.get('semester', 'N/A')}"
                     })
                 
                 # Send email via notification service
