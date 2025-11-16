@@ -47,12 +47,14 @@ async def create_payment(
     credentials: HTTPAuthorizationCredentials = Depends(security)
 ):
     """
-    Create a new payment for a tuition.
+    Create a new payment for all debt tuitions of a student.
     
-    Customer ID and email are automatically extracted from the JWT token.
+    Only requires studentId - automatically fetches and pays ALL unpaid tuitions for that student.
+    Customer ID and email are automatically extracted from the JWT token (who is paying).
     
     Flow: OTP Page -> Message Broker (notify other services) -> Lock service
     
+    - Automatically fetches all debt tuitions for the specified student
     - Locks the payment to allow only one payment per tuition per customer
     - Uses idempotency key to prevent duplicate payments
     - Notifies other services via message broker
@@ -68,7 +70,7 @@ async def create_payment(
                 detail="Customer ID not found in authentication token"
             )
         
-        logger.info(f"Creating payment for customer {customer_id}, tuitions {request.tuitionIds}")
+        logger.info(f"Creating payment for customer {customer_id}, student {request.studentId} (all debt tuitions)")
         
         # Extract JWT token for internal service calls
         auth_token = credentials.credentials

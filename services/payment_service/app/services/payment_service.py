@@ -28,12 +28,12 @@ class PaymentService:
     async def createPaymentAsync(self, request: PaymentCreateRequest, auth_token: str, customer_id: str, user_email: Optional[str] = None) -> PaymentModel:
         """
         Create a new payment with idempotency key to prevent duplicates.
-        Lock the payment to allow only one payment per tuition per user.
+        Automatically fetches all debt tuitions for the specified student.
         
         Args:
-            request: Payment creation request with tuition IDs
+            request: Payment creation request with studentId
             auth_token: JWT token for authenticating internal service calls
-            customer_id: Customer ID extracted from JWT token
+            customer_id: Customer ID extracted from JWT token (who is paying)
             user_email: User email extracted from JWT token
             
         Returns:
@@ -43,33 +43,17 @@ class PaymentService:
             HTTPException: If payment already exists or tuition not found
         """
         try:
-            # Handle tuitionIds input - convert to list
-            tuition_ids = []
-            if isinstance(request.tuitionIds, str):
-                if request.tuitionIds.lower() == "all":
-                    # Determine which student's tuitions to fetch
-                    # If studentId is provided, use it; otherwise use customer_id (paying for self)
-                    target_student_id = request.studentId if request.studentId else customer_id
-                    
-                    # Fetch all unpaid tuitions for the target student
-                    tuition_ids = await self._getAllUnpaidTuitionsAsync(target_student_id, auth_token)
-                    if not tuition_ids:
-                        raise HTTPException(
-                            status_code=status.HTTP_404_NOT_FOUND,
-                            detail=f"No unpaid tuitions found for student {target_student_id}"
-                        )
-                    logger.info(f"Customer {customer_id} paying all tuitions for student {target_student_id}: {tuition_ids}")
-                else:
-                    tuition_ids = [request.tuitionIds]
-            else:
-                tuition_ids = request.tuitionIds
+            # Fetch all unpaid tuitions for the student
+            target_student_id = request.studentId
+            tuition_ids = await self._getAllUnpaidTuitionsAsync(target_student_id, auth_token)
             
-            # Validate we have at least one tuition
             if not tuition_ids:
                 raise HTTPException(
-                    status_code=status.HTTP_400_BAD_REQUEST,
-                    detail="At least one tuition ID must be provided"
+                    status_code=status.HTTP_404_NOT_FOUND,
+                    detail=f"No unpaid tuitions found for student {target_student_id}"
                 )
+            
+            logger.info(f"Customer {customer_id} paying all debt tuitions for student {target_student_id}: {tuition_ids}")
             
             # Generate idempotency key from customer and tuition IDs
             tuition_ids_str = "_".join(sorted(tuition_ids))

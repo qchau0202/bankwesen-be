@@ -13,7 +13,7 @@ from ..core.dependencies import (
     verify_api_key
 )
 
-router = APIRouter(prefix="/api/v1/auth", tags=["Authentication"])
+router = APIRouter(prefix="/api/auth", tags=["Authentication"])
 
 
 @router.post(
