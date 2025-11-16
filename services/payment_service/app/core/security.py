@@ -94,7 +94,7 @@ async def get_current_user(
     
     # Extract user information
     username = payload.get("username")
-    userid = payload.get("userid")
+    customer_id = payload.get("customerId")
     email = payload.get("email")
     
     if username is None:
@@ -104,12 +104,15 @@ async def get_current_user(
             headers={"WWW-Authenticate": "Bearer"},
         )
     
-    # Use username as fallback for userid if userid is not present
-    if not userid:
-        userid = username
+    if not customer_id:
+        raise HTTPException(
+            status_code=status.HTTP_401_UNAUTHORIZED,
+            detail="Could not validate credentials. Missing customer ID.",
+            headers={"WWW-Authenticate": "Bearer"},
+        )
     
     return {
         "username": username,
-        "userid": userid,
+        "customerId": customer_id,
         "email": email
     }

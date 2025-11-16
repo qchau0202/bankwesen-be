@@ -126,7 +126,7 @@ class EmailService:
                     <div class="info">
                         <strong>Payment Details:</strong><br>
                         Payment ID: {payment_id}<br>
-                        Amount: ${amount:,.2f}
+                        Amount: {amount:,.2f} VND
                     </div>
                     
                     <div class="warning">
@@ -169,14 +169,44 @@ class EmailService:
         
         tuition_section = ""
         if tuition_info:
-            tuition_section = f"""
-            <div class="info">
-                <strong>Tuition Information:</strong><br>
-                Student: {tuition_info.get('student_name', 'N/A')}<br>
-                Course: {tuition_info.get('course', 'N/A')}<br>
-                Semester: {tuition_info.get('semester', 'N/A')}
-            </div>
-            """
+            student_id = tuition_info.get('student_id', 'N/A')
+            tuitions = tuition_info.get('tuitions', [])
+            
+            if tuitions:
+                tuition_rows = ""
+                for idx, tuition in enumerate(tuitions, 1):
+                    tuition_rows += f"""
+                    <tr>
+                        <td style="padding: 8px; border: 1px solid #ddd;">{idx}</td>
+                        <td style="padding: 8px; border: 1px solid #ddd;">{tuition.get('tuition_id', 'N/A')}</td>
+                        <td style="padding: 8px; border: 1px solid #ddd;">{tuition.get('description', 'Tuition Fee')}</td>
+                        <td style="padding: 8px; border: 1px solid #ddd;">{tuition.get('academic_year', 'N/A')}</td>
+                        <td style="padding: 8px; border: 1px solid #ddd;">{tuition.get('semester', 'N/A')}</td>
+                        <td style="padding: 8px; border: 1px solid #ddd; text-align: right;">{tuition.get('amount', 0):,.0f} VND</td>
+                    </tr>
+                    """
+                
+                tuition_section = f"""
+                <div class="info">
+                    <strong>Tuition Information:</strong><br>
+                    Student ID: {student_id}<br><br>
+                    <table style="width: 100%; border-collapse: collapse; margin-top: 10px;">
+                        <thead>
+                            <tr style="background-color: #f0f0f0;">
+                                <th style="padding: 8px; border: 1px solid #ddd; text-align: left;">#</th>
+                                <th style="padding: 8px; border: 1px solid #ddd; text-align: left;">Tuition ID</th>
+                                <th style="padding: 8px; border: 1px solid #ddd; text-align: left;">Description</th>
+                                <th style="padding: 8px; border: 1px solid #ddd; text-align: left;">Academic Year</th>
+                                <th style="padding: 8px; border: 1px solid #ddd; text-align: left;">Semester</th>
+                                <th style="padding: 8px; border: 1px solid #ddd; text-align: right;">Amount</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            {tuition_rows}
+                        </tbody>
+                    </table>
+                </div>
+                """
         
         return f"""
         <!DOCTYPE html>
@@ -291,36 +321,42 @@ class EmailService:
         payment_id: str,
         amount: float,
         timestamp: str,
+        is_self_payment: bool,
         tuition_info: dict = None
     ) -> tuple[bool, bool]:
         """
-        Send transaction confirmation emails to both payer and recipient
+        Send transaction confirmation emails.
+        - Customer (payer) email: from JWT token
+        - Student (recipient) email: from tuition table
+        
+        If customer pays for themselves: send only to customer email
+        If customer pays for another student: send to both customer and student
         
         Returns:
-            Tuple of (payer_email_sent, recipient_email_sent)
+            Tuple of (customer_email_sent, student_email_sent)
         """
-        # Send to payer
-        payer_html = self.generate_transaction_email(
+        # Always send to customer (payer)
+        customer_html = self.generate_transaction_email(
             recipient_name, payer_name, transaction_id, payment_id,
             amount, timestamp, tuition_info, is_payer=True
         )
-        payer_sent = await self.send_email(
+        customer_sent = await self.send_email(
             payer_email,
             "Payment Confirmation - Transaction Successful",
-            payer_html
+            customer_html
         )
+        logger.info(f"Sent transaction email to customer (payer) {payer_email}")
         
-        # Send to recipient (if different from payer)
-        recipient_sent = True
-        if payer_email != recipient_email:
-            recipient_html = self.generate_transaction_email(
-                recipient_name, payer_name, transaction_id, payment_id,
-                amount, timestamp, tuition_info, is_payer=False
-            )
-            recipient_sent = await self.send_email(
-                recipient_email,
-                "Payment Received - Tuition Fee Paid",
-                recipient_html
-            )
+        # Always send to student (recipient) - even if same email as customer
+        student_html = self.generate_transaction_email(
+            recipient_name, payer_name, transaction_id, payment_id,
+            amount, timestamp, tuition_info, is_payer=False
+        )
+        student_sent = await self.send_email(
+            recipient_email,
+            "Payment Received - Tuition Fee Paid",
+            student_html
+        )
+        logger.info(f"Sent transaction email to student (recipient) {recipient_email}")
         
-        return payer_sent, recipient_sent
+        return customer_sent, student_sent

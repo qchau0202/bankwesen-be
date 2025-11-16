@@ -11,13 +11,14 @@ class EmailOTPRequest(BaseModel):
 
 class EmailTransactionRequest(BaseModel):
     """Request schema for sending transaction confirmation email"""
-    recipient_email: EmailStr = Field(..., description="Recipient email address")
-    payer_email: EmailStr = Field(..., description="Payer email address")
+    recipient_email: EmailStr = Field(..., description="Recipient (student) email address")
+    payer_email: EmailStr = Field(..., description="Payer (customer) email address")
     transaction_id: str = Field(..., description="Transaction ID")
     payment_id: str = Field(..., description="Payment ID")
     amount: float = Field(..., description="Transaction amount")
-    payer_name: str = Field(..., description="Name of person who paid")
-    recipient_name: str = Field(..., description="Name of person who receives payment")
+    payer_name: str = Field(..., description="Name of customer who paid")
+    recipient_name: str = Field(..., description="Name of student who receives payment")
+    is_self_payment: bool = Field(..., description="Whether customer is paying for themselves")
     tuition_info: Optional[Dict[str, Any]] = Field(None, description="Tuition information")
     timestamp: str = Field(..., description="Transaction timestamp")
 

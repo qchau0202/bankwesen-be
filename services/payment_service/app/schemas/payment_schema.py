@@ -1,20 +1,37 @@
 from pydantic import BaseModel, Field, EmailStr
-from typing import Optional
+from typing import Optional, List, Union
 from datetime import datetime
 
 
 # Request Schemas
 class PaymentCreateRequest(BaseModel):
-    """Request schema for creating a new payment"""
-    customerId: str = Field(..., description="Customer ID from auth service")
-    tuitionId: str = Field(..., description="Tuition ID to be paid")
+    """Request schema for creating a new payment. Customer ID is extracted from JWT token."""
+    tuitionIds: Union[str, List[str]] = Field(
+        ..., 
+        description="Single tuition ID or list of tuition IDs to be paid. Use 'all' to pay all unpaid tuitions for the student."
+    )
+    studentId: Optional[str] = Field(
+        None,
+        description="Student ID whose tuitions to pay. Required when tuitionIds='all'. If not provided, uses the authenticated user's ID from JWT token."
+    )
     
     class Config:
         json_schema_extra = {
-            "example": {
-                "customerId": "523K0000",
-                "tuitionId": "TU1731369600001"
-            }
+            "examples": [
+                {
+                    "tuitionIds": "TU1731369600001"
+                },
+                {
+                    "tuitionIds": ["TU1731369600001", "TU1731369600002"]
+                },
+                {
+                    "tuitionIds": "all",
+                    "studentId": "523K0001"
+                },
+                {
+                    "tuitionIds": "all"
+                }
+            ]
         }
 
 
@@ -35,7 +52,7 @@ class PaymentResponse(BaseModel):
     """Response schema for payment information"""
     paymentId: str
     customerId: str
-    tuitionId: str
+    tuitionIds: List[str]
     idempotency_key: str
     amount: float
     status: str
@@ -49,9 +66,9 @@ class PaymentResponse(BaseModel):
             "example": {
                 "paymentId": "PAY1731369600001",
                 "customerId": "523K0000",
-                "tuitionId": "TU1731369600001",
+                "tuitionIds": ["TU1731369600001", "TU1731369600002"],
                 "idempotency_key": "unique-key-12345",
-                "amount": 5000000.00,
+                "amount": 10000000.00,
                 "status": "pending",
                 "otp_attempts": 0,
                 "is_locked": False,
@@ -95,7 +112,7 @@ class OTPVerifyResponse(BaseModel):
                 "payment": {
                     "paymentId": "PAY1731369600001",
                     "customerId": "523K0000",
-                    "tuitionId": "TU1731369600001",
+                    "tuitionIds": ["TU1731369600001"],
                     "idempotency_key": "unique-key-12345",
                     "amount": 5000000.00,
                     "status": "completed",

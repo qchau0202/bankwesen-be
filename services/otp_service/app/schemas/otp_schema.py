@@ -1,11 +1,11 @@
 from pydantic import BaseModel, Field
-from typing import Optional
+from typing import Optional, List
 from datetime import datetime
 
 class OTPRequest(BaseModel):
     """Request schema for OTP generation"""
     payment_id: str = Field(..., description="Payment ID")
-    tuition_id: str = Field(..., description="Tuition ID")
+    tuition_ids: List[str] = Field(..., description="List of Tuition IDs")
     user_id: str = Field(..., description="User ID")
     amount: float = Field(..., description="Payment amount")
     email: Optional[str] = Field(None, description="User email for OTP delivery")
@@ -40,7 +40,7 @@ class OTPData(BaseModel):
     """OTP data stored in Redis"""
     otp_code: str
     payment_id: str
-    tuition_id: str
+    tuition_ids: List[str]
     user_id: str
     amount: float
     attempts: int = 0
@@ -52,7 +52,7 @@ class OTPData(BaseModel):
             "example": {
                 "otp_code": "123456",
                 "payment_id": "pay_123",
-                "tuition_id": "tuition_456",
+                "tuition_ids": ["tuition_456", "tuition_457"],
                 "user_id": "user_789",
                 "amount": 1000.00,
                 "attempts": 0,
