@@ -604,22 +604,32 @@ class PaymentService:
             raise
     
     async def _updateTuitionStatusAsync(self, tuition_id: str):
-        """Update tuition status to paid"""
+        """Update tuition status to paid directly in tuition database"""
         try:
-            async with httpx.AsyncClient() as client:
-                response = await client.put(
-                    f"{settings.TUITION_SERVICE_URL}/api/tuition/{tuition_id}/status",
-                    json={"status": "paid"},
-                    headers={"x-api-key": settings.API_KEY},
-                    timeout=10.0
-                )
-                
-                if response.status_code != 200:
-                    raise Exception(f"Failed to update tuition status: {response.text}")
-                    
-                logger.info(f"Updated tuition {tuition_id} to paid status")
+            from app.db.mongodb import tuition_database
+            
+            if tuition_database is None:
+                raise Exception("Tuition database connection is not initialized")
+            
+            tuitions_collection = tuition_database["tuitions"]
+            
+            # Update tuition status to paid (case-insensitive search)
+            result = await tuitions_collection.update_one(
+                {"tuitionId": {"$regex": f"^{tuition_id}$", "$options": "i"}},
+                {
+                    "$set": {
+                        "status": "paid",
+                        "updated_at": datetime.utcnow()
+                    }
+                }
+            )
+            
+            if result.modified_count == 0:
+                logger.warning(f"No tuition found with ID {tuition_id} to update")
+            else:
+                logger.info(f"✅ Updated tuition {tuition_id} to paid status")
         except Exception as e:
-            logger.error(f"Error updating tuition status: {e}")
+            logger.error(f"❌ Error updating tuition status: {e}")
             raise
     
     async def _sendTransactionCompletionEmailAsync(self, payment: PaymentModel, completed_at: datetime, auth_token: str):

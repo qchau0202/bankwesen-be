@@ -9,6 +9,7 @@ class Settings(BaseSettings):
     MONGODB_URL: str
     DATABASE_NAME: str
     AUTH_DATABASE_NAME: str = "auth_db"  # Database where users are stored
+    TUITION_DATABASE_NAME: str = "tuition_db"  # Database where tuitions are stored
     
     # Redis Settings
     REDIS_URL: str = "redis://redis:6379"

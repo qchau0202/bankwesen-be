@@ -17,12 +17,19 @@ class TuitionService:
         """Format amount to VND currency string."""
         return f"{amount:,.0f} VND"
     
-    async def getStudentTuitionsAsync(self, student_id: str) -> StudentTuitionListResponse:
+    async def getStudentTuitionsAsync(
+        self, 
+        student_id: str, 
+        academic_year: Optional[str] = None, 
+        semester: Optional[str] = None
+    ) -> StudentTuitionListResponse:
         """
-        Fetch all tuition records for a specific student.
+        Fetch all tuition records for a specific student with optional filters.
         
         Args:
             student_id: The student's ID/code
+            academic_year: Optional filter for academic year (e.g., "2023 - 2024")
+            semester: Optional filter for semester (e.g., "Semester I", "Semester II", "Semester III")
             
         Returns:
             StudentTuitionListResponse with all tuition records
@@ -30,8 +37,17 @@ class TuitionService:
         Raises:
             HTTPException: If student not found or no tuition records exist
         """
-        # Fetch all tuition records for the student (case-insensitive)
-        cursor = self.collection.find({"studentId": {"$regex": f"^{student_id}$", "$options": "i"}})
+        # Build query with filters (case-insensitive)
+        query = {"studentId": {"$regex": f"^{student_id}$", "$options": "i"}}
+        
+        if academic_year:
+            query["academic_year"] = {"$regex": f"^{academic_year}$", "$options": "i"}
+        
+        if semester:
+            query["semester"] = {"$regex": f"^{semester}$", "$options": "i"}
+        
+        # Fetch all tuition records for the student
+        cursor = self.collection.find(query)
         tuitions_data = await cursor.to_list(length=None)
         
         if not tuitions_data:

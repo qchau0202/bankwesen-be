@@ -1,7 +1,5 @@
 ﻿from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
-import httpx
-import os
 from .core.config import settings
 from .db.mongodb import connect_to_mongodb, close_mongodb_connection
 from .api.auth_routes import router as auth_router
@@ -54,25 +52,9 @@ async def root():
     }
 
 
-@app.get("/hello")
-async def hello():
-    return {"message": "Hello from Auth Service!"}
-
-
 @app.get("/health")
 async def health():
     return {
         "status": "healthy",
         "service": settings.APP_NAME
     }
-
-
-@app.get("/call-otp")
-async def call_otp():
-    otp_url = os.getenv("OTP_SERVICE_URL", "http://otp_service:8002")
-    async with httpx.AsyncClient() as client:
-        try:
-            response = await client.get(f"{otp_url}/hello", timeout=5.0)
-            return {"auth_service": "called OTP service", "otp_response": response.json()}
-        except Exception as e:
-            return {"auth_service": "error", "error": str(e)}

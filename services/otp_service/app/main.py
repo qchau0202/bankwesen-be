@@ -62,10 +62,6 @@ async def root():
         "version": "1.0.0"
     }
 
-@app.get("/hello")
-async def hello():
-    return {"message": "Hello from OTP Service!"}
-
 @app.get("/health")
 async def health():
     """Health check endpoint"""
