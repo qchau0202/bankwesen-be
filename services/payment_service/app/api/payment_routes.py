@@ -73,7 +73,7 @@ async def create_payment(
         # Extract JWT token for internal service calls
         auth_token = credentials.credentials
         
-        payment = await payment_service.create_payment(request, auth_token, customer_id, user_email)
+        payment = await payment_service.createPaymentAsync(request, auth_token, customer_id, user_email)
         
         return PaymentResponse(
             paymentId=payment.paymentId,
@@ -134,7 +134,7 @@ async def request_payment_otp(
                 detail="User email not found in authentication token"
             )
         
-        otp_response = await payment_service.request_otp(paymentID, user_email)
+        otp_response = await payment_service.requestOtpAsync(paymentID, user_email)
         
         return OTPRequestResponse(
             success=otp_response.get("success", True),
@@ -190,7 +190,7 @@ async def verify_payment_otp(
         # Extract JWT token for internal service calls
         auth_token = credentials.credentials
         
-        payment = await payment_service.verify_otp(paymentID, request.otp_code, auth_token)
+        payment = await payment_service.verifyOtpAsync(paymentID, request.otp_code, auth_token)
         
         return OTPVerifyResponse(
             success=True,
@@ -245,7 +245,7 @@ async def cancel_payment(
     try:
         logger.info(f"Cancelling payment {paymentID}")
         
-        await payment_service.cancel_payment(paymentID)
+        await payment_service.cancelPaymentAsync(paymentID)
         
         return PaymentCancelResponse(
             success=True,

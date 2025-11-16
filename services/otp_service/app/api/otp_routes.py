@@ -35,7 +35,7 @@ async def request_otp(
         logger.info(f"Received OTP request for payment_id={request.payment_id}, email={request.email}")
         
         # Check if payment is locked
-        is_locked = await otp_service.is_payment_locked(request.payment_id)
+        is_locked = await otp_service.isPaymentLockedAsync(request.payment_id)
         if is_locked:
             raise HTTPException(
                 status_code=status.HTTP_423_LOCKED,
@@ -43,11 +43,11 @@ async def request_otp(
             )
         
         # Generate OTP
-        otp_code, otp_data = await otp_service.generate_otp(request)
+        otp_code, otp_data = await otp_service.generateOtpAsync(request)
         
         # Get expiration time
-        expires_in = await otp_service.get_remaining_time(request.payment_id)
-        attempts_remaining = await otp_service.get_attempts_remaining(request.payment_id)
+        expires_in = await otp_service.getRemainingTimeAsync(request.payment_id)
+        attempts_remaining = await otp_service.getAttemptsRemainingAsync(request.payment_id)
         
         # Send OTP via email using notification service
         if request.email:
@@ -124,7 +124,7 @@ async def verify_otp(
     try:
         logger.info(f"Verifying OTP for payment_id={request.payment_id}, code={request.otp_code}")
         
-        is_valid, message, attempts_remaining = await otp_service.verify_otp(
+        is_valid, message, attempts_remaining = await otp_service.verifyOtpAsync(
             request.payment_id,
             request.otp_code
         )
@@ -142,7 +142,7 @@ async def verify_otp(
             )
         else:
             # Check if payment is now locked
-            is_locked = await otp_service.is_payment_locked(request.payment_id)
+            is_locked = await otp_service.isPaymentLockedAsync(request.payment_id)
             
             if is_locked:
                 return OTPVerifyResponse(
@@ -182,7 +182,7 @@ async def resend_otp(
     """
     try:
         # Check if payment is locked
-        is_locked = await otp_service.is_payment_locked(request.payment_id)
+        is_locked = await otp_service.isPaymentLockedAsync(request.payment_id)
         if is_locked:
             raise HTTPException(
                 status_code=status.HTTP_423_LOCKED,
@@ -190,7 +190,7 @@ async def resend_otp(
             )
         
         # Resend OTP
-        otp_code, otp_data = await otp_service.resend_otp(request.payment_id)
+        otp_code, otp_data = await otp_service.resendOtpAsync(request.payment_id)
         
         if not otp_code or not otp_data:
             raise HTTPException(
@@ -199,8 +199,8 @@ async def resend_otp(
             )
         
         # Get expiration time
-        expires_in = await otp_service.get_remaining_time(request.payment_id)
-        attempts_remaining = await otp_service.get_attempts_remaining(request.payment_id)
+        expires_in = await otp_service.getRemainingTimeAsync(request.payment_id)
+        attempts_remaining = await otp_service.getAttemptsRemainingAsync(request.payment_id)
         
         # Send OTP via email using notification service
         if otp_data.email:
@@ -259,7 +259,7 @@ async def get_otp_status(
     """
     try:
         # Check if OTP exists
-        otp_data = await otp_service.get_otp_data(payment_id)
+        otp_data = await otp_service.getOtpDataAsync(payment_id)
         
         if not otp_data:
             raise HTTPException(
@@ -268,7 +268,7 @@ async def get_otp_status(
             )
         
         # Check if locked
-        is_locked = await otp_service.is_payment_locked(payment_id)
+        is_locked = await otp_service.isPaymentLockedAsync(payment_id)
         if is_locked:
             raise HTTPException(
                 status_code=status.HTTP_423_LOCKED,
@@ -276,8 +276,8 @@ async def get_otp_status(
             )
         
         # Get remaining time and attempts
-        expires_in = await otp_service.get_remaining_time(payment_id)
-        attempts_remaining = await otp_service.get_attempts_remaining(payment_id)
+        expires_in = await otp_service.getRemainingTimeAsync(payment_id)
+        attempts_remaining = await otp_service.getAttemptsRemainingAsync(payment_id)
         
         return OTPResponse(
             success=True,
@@ -307,7 +307,7 @@ async def cancel_otp(
     Used when payment is canceled or user chooses to cancel
     """
     try:
-        await otp_service.delete_otp(payment_id)
+        await otp_service.deleteOtpAsync(payment_id)
         return None
     except Exception as e:
         logger.error(f"Error canceling OTP: {e}")

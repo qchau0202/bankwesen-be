@@ -42,7 +42,7 @@ async def login(
     api_key: str = Depends(verify_api_key)
 ):
     # Attempt login
-    result = await AuthService.login(login_data.username, login_data.password)
+    result = await AuthService.loginAsync(login_data.username, login_data.password)
     
     if not result:
         raise HTTPException(
@@ -103,7 +103,7 @@ async def register(
         )
     
     # Attempt registration
-    result = await AuthService.register(register_data)
+    result = await AuthService.registerAsync(register_data)
 
     if not result:
         raise HTTPException(
@@ -197,7 +197,7 @@ async def deduct_balance(
             detail="Amount must be greater than 0"
         )
     
-    result = await AuthService.deduct_balance(customer_id, amount)
+    result = await AuthService.deductBalanceAsync(customer_id, amount)
     
     if not result:
         raise HTTPException(

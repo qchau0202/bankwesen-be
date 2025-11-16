@@ -24,7 +24,7 @@ async def send_otp_email(request: EmailOTPRequest):
     try:
         logger.info(f"Received request to send OTP email to {request.email} for payment {request.payment_id}")
         
-        success = await email_service.send_otp_email(
+        success = await email_service.sendOtpEmailAsync(
             email=request.email,
             otp_code=request.otp_code,
             expires_in=request.expires_in,
@@ -65,7 +65,7 @@ async def send_transaction_email(request: EmailTransactionRequest):
     """
     try:
         logger.info(f"📧 Received transaction email request: payer={request.payer_email}, recipient={request.recipient_email}, is_self_payment={request.is_self_payment}")
-        customer_sent, student_sent = await email_service.send_transaction_email(
+        customer_sent, student_sent = await email_service.sendTransactionEmailAsync(
             recipient_email=request.recipient_email,
             payer_email=request.payer_email,
             recipient_name=request.recipient_name,

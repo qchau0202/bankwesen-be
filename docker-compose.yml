@@ -49,13 +49,11 @@ services:
     env_file:
       - ./services/otp_service/.env
     environment:
-      - MONGODB_URL=mongodb://mongodb:27017/otp_db
       - NOTIFICATION_SERVICE_URL=http://notification_service:8004
       - REDIS_URL=redis://redis:6379
       - REDIS_HOST=redis
       - REDIS_PORT=6379
     depends_on:
-      - mongodb
       - redis
     networks:
       - bankwesen-network
@@ -106,19 +104,6 @@ services:
       - bankwesen-network
     restart: unless-stopped
 
-  mongodb:
-    image: mongo:7.0
-    container_name: bankwesen_mongodb
-    ports:
-      - "27017:27017"
-    environment:
-      - MONGO_INITDB_DATABASE=bankwesen_db
-    volumes:
-      - mongodb_data:/data/db
-    networks:
-      - bankwesen-network
-    restart: unless-stopped
-
   redis:
     image: redis:7-alpine
     container_name: bankwesen_redis
@@ -136,5 +121,4 @@ networks:
     driver: bridge
 
 volumes:
-  mongodb_data:
   redis_data:

@@ -17,7 +17,7 @@ class AuthService:
     """Authentication service for handling user authentication."""
 
     @staticmethod
-    async def authenticate_user(username: str, password: str) -> Optional[Dict[str, Any]]:
+    async def authenticateUserAsync(username: str, password: str) -> Optional[Dict[str, Any]]:
         users_collection = get_users_collection()
         
         # Find user by username
@@ -33,7 +33,7 @@ class AuthService:
         return user
 
     @staticmethod
-    def create_user_token(user: Dict[str, Any]) -> Dict[str, Any]:
+    def createUserToken(user: Dict[str, Any]) -> Dict[str, Any]:
         # Prepare token data with important information
         token_data = {
             "sub": user.get("username"),  # Subject (username)
@@ -67,18 +67,18 @@ class AuthService:
         }
 
     @staticmethod
-    async def login(username: str, password: str) -> Optional[Dict[str, Any]]:
+    async def loginAsync(username: str, password: str) -> Optional[Dict[str, Any]]:
         # Authenticate user
-        user = await AuthService.authenticate_user(username, password)
+        user = await AuthService.authenticateUserAsync(username, password)
         
         if not user:
             return None
         
         # Create and return token
-        return AuthService.create_user_token(user)
+        return AuthService.createUserToken(user)
 
     @staticmethod
-    async def register(register_data: RegisterRequest) -> Optional[Dict[str, Any]]:
+    async def registerAsync(register_data: RegisterRequest) -> Optional[Dict[str, Any]]:
         """
         Register a new user.
         
@@ -130,10 +130,10 @@ class AuthService:
         created_user = await users_collection.find_one({"_id": result.inserted_id})
         
         # Create and return token for the new user
-        return AuthService.create_user_token(created_user)
+        return AuthService.createUserToken(created_user)
     
     @staticmethod
-    async def deduct_balance(customer_id: str, amount: float) -> Optional[Dict[str, Any]]:
+    async def deductBalanceAsync(customer_id: str, amount: float) -> Optional[Dict[str, Any]]:
         """
         Deduct amount from customer's balance.
         
