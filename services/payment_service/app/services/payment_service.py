@@ -304,6 +304,15 @@ class PaymentService:
                         
                         new_access_token = None
                         if user:
+                            # Append this paymentId to the user's payment_history
+                            try:
+                                await users_collection.update_one(
+                                    {"customerId": payment.customerId},
+                                    {"$push": {"payment_history": payment_id}}
+                                )
+                                logger.info(f"Appended payment {payment_id} to user {payment.customerId}'s payment_history")
+                            except Exception as e:
+                                logger.warning(f"Failed to append payment history for user {payment.customerId}: {e}")
                             token_data = {
                                 "sub": user.get("username"),
                                 "customerId": user.get("customerId"),
@@ -587,23 +596,25 @@ class PaymentService:
                 logger.warning(f"Payer {payment.customerId} has no email address")
                 return
             
-            # Get student ID from tuition database directly
-            from app.db.mongodb import tuition_database
-            
-            if tuition_database is None:
-                logger.error("Tuition database connection is not initialized")
-                return
-            
-            tuitions_collection = tuition_database["tuitions"]
-            
-            # Get all tuition details for the paid tuitions
+            # Get tuition details from Tuition Service for each tuitionId
             tuition_details = []
-            for tuition_id in payment.tuitionIds:
-                tuition = await tuitions_collection.find_one({"tuitionId": tuition_id})
-                if tuition:
-                    tuition_details.append(tuition)
-                else:
-                    logger.warning(f"Failed to get tuition {tuition_id} from database")
+            async with httpx.AsyncClient() as client:
+                for tuition_id in payment.tuitionIds:
+                    try:
+                        tuition_resp = await client.get(
+                            f"{settings.TUITION_SERVICE_URL}/api/tuition/record/{tuition_id}",
+                            headers={
+                                "x-api-key": settings.API_KEY,
+                                "Authorization": f"Bearer {auth_token}"
+                            },
+                            timeout=10.0
+                        )
+                        if tuition_resp.status_code == 200:
+                            tuition_details.append(tuition_resp.json())
+                        else:
+                            logger.warning(f"Tuition service returned {tuition_resp.status_code} for {tuition_id}: {tuition_resp.text}")
+                    except Exception as e:
+                        logger.warning(f"Failed to fetch tuition {tuition_id} from tuition service: {e}")
             
             if not tuition_details:
                 logger.error(f"Failed to get any tuition details from database")

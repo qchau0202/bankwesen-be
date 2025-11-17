@@ -1,4 +1,4 @@
-from typing import Optional
+from typing import Optional, List
 from pydantic import BaseModel, Field, EmailStr
 from datetime import datetime
 from bson import ObjectId
@@ -31,6 +31,7 @@ class UserModel(BaseModel):
     email: Optional[EmailStr] = Field(None, description="Email address")
     phone_number: Optional[str] = Field(None, description="Phone number")
     balance: float = Field(default=0.0, description="Account balance")
+    payment_history: List[str] = Field(default_factory=list, description="List of payment IDs")
     created_at: Optional[datetime] = Field(default_factory=datetime.utcnow)
 
     class Config:
@@ -45,6 +46,8 @@ class UserModel(BaseModel):
                 "full_name": "John Doe",
                 "email": "john.doe@example.com",
                 "balance": 1000.0
+                ,
+                "payment_history": []
             }
         }
 
@@ -59,3 +62,4 @@ class UserInDB(BaseModel):
     email: Optional[EmailStr] = None
     phone_number: Optional[str] = None
     balance: float = 0.0
+    payment_history: List[str] = Field(default_factory=list)
