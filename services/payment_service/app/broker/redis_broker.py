@@ -25,11 +25,10 @@ async def connect_to_redis():
             encoding="utf-8",
             decode_responses=True
         )
-        # Test connection
         await redis_client.ping()
-        logger.info(f"✅ Connected to Redis at {settings.REDIS_URL}")
+        logger.info(f"Connected to Redis at {settings.REDIS_URL}")
     except Exception as e:
-        logger.error(f"❌ Failed to connect to Redis: {e}")
+        logger.error(f"Failed to connect to Redis: {e}")
         redis_client = None
 
 
@@ -38,7 +37,7 @@ async def close_redis_connection():
     global redis_client
     if redis_client:
         await redis_client.close()
-        logger.info("❌ Closed Redis connection")
+        logger.info("Closed Redis connection")
 
 
 def get_redis_client() -> Optional[redis.Redis]:
@@ -69,10 +68,10 @@ async def publish_event(channel: str, event_type: str, data: Dict[str, Any]) -> 
         }
         
         await redis_client.publish(channel, json.dumps(message))
-        logger.info(f"📤 Published event '{event_type}' to channel '{channel}'")
+        logger.info(f"Published event '{event_type}' to channel '{channel}'")
         return True
     except Exception as e:
-        logger.error(f"❌ Failed to publish event to {channel}: {e}")
+        logger.error(f"Failed to publish event to {channel}: {e}")
         return False
 
 
@@ -91,7 +90,7 @@ async def subscribe_to_channel(channel: str, callback):
     try:
         pubsub = redis_client.pubsub()
         await pubsub.subscribe(channel)
-        logger.info(f"📥 Subscribed to channel '{channel}'")
+        logger.info(f"Subscribed to channel '{channel}'")
         
         async for message in pubsub.listen():
             if message["type"] == "message":

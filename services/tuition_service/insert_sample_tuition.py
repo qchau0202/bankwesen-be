@@ -25,20 +25,14 @@ async def insert_sample_tuition():
     client = AsyncIOMotorClient(MONGODB_URL)
     db = client[DATABASE_NAME]
     
-    print(f"🔄 Inserting sample data into {DATABASE_NAME}...")
+    print(f"Inserting sample data into {DATABASE_NAME}...")
     
-    # Clear existing data (optional - comment out if you want to keep existing data)
     result = await db.tuitions.delete_many({})
-    print(f"✅ Cleared {result.deleted_count} existing records")
+    print(f"Cleared {result.deleted_count} existing records")
     
-    # Current time in UTC+7
     now_utc7 = datetime.now(UTC_PLUS_7)
     
-    # Sample tuition records with realistic Vietnamese student data
-    # Currency: Vietnamese Dong (VND)
-    # Typical university tuition: 10-20 million VND per semester
     sample_tuitions = [
-        # Student 1: Ly Hung Quoc Chau - Has unpaid tuition from current year
         {
             "tuitionId": "TU2024110001",
             "studentId": "523K0001",
@@ -206,13 +200,12 @@ async def insert_sample_tuition():
     
     # Insert all sample records
     result = await db.tuitions.insert_many(sample_tuitions)
-    print(f"✅ Inserted {len(result.inserted_ids)} tuition records")
+    print(f"Inserted {len(result.inserted_ids)} tuition records")
     
-    # Create indexes for better query performance
     await db.tuitions.create_index("tuitionId", unique=True)
     await db.tuitions.create_index("studentId")
     await db.tuitions.create_index([("studentId", 1), ("academic_year", -1)])
-    print("✅ Created indexes")
+    print("Created indexes")
     
     # Display summary statistics
     total_records = await db.tuitions.count_documents({})
@@ -229,25 +222,24 @@ async def insert_sample_tuition():
     ]
     amounts_by_status = await db.tuitions.aggregate(pipeline).to_list(None)
     
-    print(f"\n📊 Database Summary:")
+    print(f"\nDatabase Summary:")
     print(f"   Total Tuition Records: {total_records}")
     print(f"   - debt: {debt_records}")
     print(f"   - Paid: {paid_records}")
     print(f"   - Partial: {partial_records}")
-    print(f"\n💰 Amounts by Status (VND):")
+    print(f"\nAmounts by Status (VND):")
     for item in amounts_by_status:
         status = item['_id']
         total = item['total']
         print(f"   - {status.capitalize()}: {total:,.0f} VND")
     
-    # List unique students
     unique_students = await db.tuitions.distinct("studentId")
-    print(f"\n👥 Number of Students: {len(unique_students)}")
+    print(f"\nNumber of Students: {len(unique_students)}")
     print(f"   Student IDs: {', '.join(unique_students)}")
     
     client.close()
-    print(f"\n✅ Sample data insertion complete!")
-    print(f"\n💡 You can now test the API:")
+    print(f"\nSample data insertion complete!")
+    print(f"\nYou can now test the API:")
     print(f"   GET /api/tuition/{{studentId}} - e.g., GET /api/tuition/523K0001")
     print(f"   GET /api/tuition/record/{{tuitionId}} - e.g., GET /api/tuition/record/TU2024110001")
 

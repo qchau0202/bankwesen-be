@@ -4,16 +4,16 @@ Student tuition management service with MongoDB. Handles tuition records, paymen
 
 ## Features
 
-- 📊 Fetch all tuition records for a student
-- 💰 Track tuition payments in Vietnamese Dong (VND)
-- 📅 Monitor payment due dates and status
-- 🎓 Manage semester-based tuition records
-- 🔒 **JWT Authentication** - Secure access to tuition data
-- 🛡️ **Access Control** - Students can only view their own records
+- Fetch all tuition records for a student
+- Track tuition payments in Vietnamese Dong (VND)
+- Monitor payment due dates and status
+- Manage semester-based tuition records
+- **JWT Authentication** - Secure access to tuition data
+- **Access Control** - Students can only view their own records
 
 ## Endpoints
 
-### Tuition Management (🔒 Authentication Required)
+### Tuition Management (Authentication Required)
 - `GET /api/tuition/{studentId}` - Get all tuition records for a student
   - **Requires:** Valid JWT Bearer token
   - **Access:** Students can only access their own records; Admins can access all
@@ -169,7 +169,7 @@ All tuition endpoints require **TWO** authentication headers:
 - **Admins**: Full access to all tuition records
   - Identified by `role: admin` in the JWT token
 
-### ⚠️ IMPORTANT: JWT Configuration
+### IMPORTANT: JWT Configuration
 The JWT secret key in `tuition_service/.env` **MUST match** the secret key in `auth_service/.env`:
 
 ```bash
@@ -187,7 +187,7 @@ JWT_SECRET_KEY=your-secret-key-change-this-in-production-min-32-chars
 
 ### Use Cases
 **Why students can view other students' tuition?**
-- 🤝 **Mutual Support**: Students can help friends with tuition payments
-- 👨‍👩‍👧‍👦 **Family Assistance**: Parents/siblings can check and pay tuition
-- 💰 **Group Payments**: Study groups can collectively manage tuition obligations
-- 🎓 **Scholarship Programs**: Student organizations can verify and assist with tuition
+- **Mutual Support**: Students can help friends with tuition payments
+- **Family Assistance**: Parents/siblings can check and pay tuition
+- **Group Payments**: Study groups can collectively manage tuition obligations
+- **Scholarship Programs**: Student organizations can verify and assist with tuition

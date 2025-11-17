@@ -22,11 +22,10 @@ app.add_middleware(
 # Include routers
 app.include_router(tuition_router)
 
-# Startup event
 @app.on_event("startup")
 async def startup_event():
     await connect_to_mongo()
-    print(f"🚀 {settings.SERVICE_NAME} started on port {settings.SERVICE_PORT}")
+    print(f"{settings.SERVICE_NAME} started on port {settings.SERVICE_PORT}")
 
 # Shutdown event
 @app.on_event("shutdown")

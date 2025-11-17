@@ -84,10 +84,7 @@ async def create_payment(
             idempotency_key=payment.idempotency_key,
             amount=payment.amount,
             status=payment.status,
-            otp_attempts=payment.otp_attempts,
-            is_locked=payment.is_locked,
             created_at=payment.created_at,
-            expired_at=payment.expired_at,
             otp_expires_in=getattr(payment, 'otp_expires_in', None)
         )
     except HTTPException:
@@ -206,10 +203,7 @@ async def verify_payment_otp(
                 idempotency_key=payment.idempotency_key,
                 amount=payment.amount,
                 status=payment.status,
-                otp_attempts=payment.otp_attempts,
-                is_locked=payment.is_locked,
-                created_at=payment.created_at,
-                expired_at=payment.expired_at
+                created_at=payment.created_at
             ),
             new_access_token=result.get("new_access_token"),
             token_type=result.get("token_type"),
@@ -307,10 +301,7 @@ async def get_payment(
             idempotency_key=payment.idempotency_key,
             amount=payment.amount,
             status=payment.status,
-            otp_attempts=payment.otp_attempts,
-            is_locked=payment.is_locked,
-            created_at=payment.created_at,
-            expired_at=payment.expired_at
+            created_at=payment.created_at
         )
     except HTTPException:
         raise

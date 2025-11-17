@@ -23,13 +23,12 @@ app.add_middleware(
 # Include routers
 app.include_router(payment_router)
 
-# Startup event
 @app.on_event("startup")
 async def startup_event():
     await connect_to_mongo()
     await connect_to_redis()
-    print(f"🚀 {settings.SERVICE_NAME} started on port {settings.SERVICE_PORT}")
-    print(f"📋 API Key Security: {'ENABLED' if settings.ENABLE_API_KEY else 'DISABLED'}")
+    print(f"{settings.SERVICE_NAME} started on port {settings.SERVICE_PORT}")
+    print(f"API Key Security: {'ENABLED' if settings.ENABLE_API_KEY else 'DISABLED'}")
 
 # Shutdown event
 @app.on_event("shutdown")

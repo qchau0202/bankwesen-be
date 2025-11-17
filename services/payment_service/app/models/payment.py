@@ -30,10 +30,7 @@ class PaymentModel(BaseModel):
     idempotency_key: str = Field(..., description="Unique key to prevent duplicate payments")
     amount: float = Field(..., description="Total payment amount")
     status: str = Field(default="pending", description="Status: pending, completed, failed, cancelled")
-    otp_attempts: int = Field(default=0, description="Number of OTP verification attempts")
-    is_locked: bool = Field(default=False, description="Whether payment is locked due to multiple failures")
     created_at: datetime = Field(default_factory=datetime.utcnow)
-    expired_at: Optional[datetime] = Field(None, description="Payment expiration date")
 
     class Config:
         populate_by_name = True
@@ -46,9 +43,6 @@ class PaymentModel(BaseModel):
                 "tuitionIds": ["TU1731369600001", "TU1731369600002"],
                 "idempotency_key": "unique-key-12345",
                 "amount": 10000000.00,
-                "status": "completed",
-                "otp_attempts": 1,
-                "is_locked": False,
-                "expired_at": "2024-12-31T23:59:59"
+                "status": "completed"
             }
         }

@@ -2,7 +2,7 @@
 
 Complete banking system with microservices architecture featuring authentication, tuition management, payments, OTP verification, and notifications.
 
-## 🚀 One-Click Setup
+## One-Click Setup
 
 **See [QUICK_START.md](QUICK_START.md) for complete setup guide!**
 
@@ -50,12 +50,12 @@ Gateway (8000) → Auth (8001) → MongoDB
 
 ## Key Features
 
-✅ **JWT Authentication** - Secure token-based auth  
-✅ **No Role System** - Simplified access control  
-✅ **Cross-Student Access** - Students can help pay for others  
-✅ **Sample Data** - Pre-loaded users and tuition records  
-✅ **Docker Ready** - One command to run everything  
-✅ **API Documentation** - Swagger UI for all services
+**JWT Authentication** - Secure token-based auth  
+**No Role System** - Simplified access control  
+**Cross-Student Access** - Students can help pay for others  
+**Sample Data** - Pre-loaded users and tuition records  
+**Docker Ready** - One command to run everything  
+**API Documentation** - Swagger UI for all services
 
 ## Prerequisites
 
@@ -158,8 +158,8 @@ cd ../payment_service
 python init_payment_db.py
 ```
 
-📚 **See detailed database documentation**: [DATABASE_SETUP.md](DATABASE_SETUP.md)  
-📋 **Configuration summary**: [CONFIGURATION_SUMMARY.md](CONFIGURATION_SUMMARY.md)
+**See detailed database documentation**: [DATABASE_SETUP.md](DATABASE_SETUP.md)  
+**Configuration summary**: [CONFIGURATION_SUMMARY.md](CONFIGURATION_SUMMARY.md)
 
 ## Environment Variables
 

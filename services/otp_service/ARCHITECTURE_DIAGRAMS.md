@@ -124,7 +124,7 @@
     │                                                             │
     │────────── SCENARIO A: OTP CORRECT ──────────►               │
     │                                                             │
-    │                          8a. OTP Verified ✓                 │
+    │                          8a. OTP Verified                   │
     │                                    ┌────────────────────────┤
     │                                    │ - Delete OTP data      │
     │                                    │ - Create Transaction   │
@@ -154,20 +154,20 @@
     │────────── SCENARIO C: WRONG OTP ─────────────►              │
     │                                                             │
     │◄────────────────────────────────────────────────────────────┤
-    │ 8c. Wrong OTP ✗ (Attempt 1/3)                               │
+    │ 8c. Wrong OTP (Attempt 1/3)                                 │
     │     "2 attempts remaining"                                  │
     │                                                             │
     │ 9c. Try again (wrong OTP)                                   │
     ├────────────────────────────────────────────────────────────►
     │                                                             │
     │◄────────────────────────────────────────────────────────────┤
-    │ 10c. Wrong OTP ✗ (Attempt 2/3)                              │
+    │ 10c. Wrong OTP (Attempt 2/3)                                │
     │      "1 attempt remaining"                                  │
     │                                                             │
     │ 11c. Try again (wrong OTP)                                  │
-    ├────────────────────────────────────────────────────────────►
+    ├─────────────────────────────────────────────────────────────►
     │                                                             │
-    │                          12c. Max Attempts Reached 🔒       │
+    │                          12c. Max Attempts Reached        │
     │                                    ┌────────────────────────┤
     │                                    │ - Set payment lock     │
     │                                    │ - Delete OTP           │

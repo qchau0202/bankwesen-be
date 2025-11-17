@@ -18,7 +18,6 @@ logger = logging.getLogger(__name__)
 class PaymentService:
     """Service for handling payment operations"""
     
-    MAX_OTP_ATTEMPTS = 3
     PAYMENT_EXPIRY_MINUTES = 60
     
     def __init__(self, db: Any):
@@ -43,35 +42,31 @@ class PaymentService:
             HTTPException: If payment already exists or tuition not found
         """
         try:
-            # Fetch all unpaid tuitions for the student (returns both IDs and full data)
             target_student_id = request.studentId
-            logger.info(f"🔍 CREATE PAYMENT REQUEST: Customer {customer_id} wants to pay for student {target_student_id}")
+            logger.info(f"CREATE PAYMENT REQUEST: Customer {customer_id} wants to pay for student {target_student_id}")
             
             tuition_ids, tuition_data_list = await self._getAllUnpaidTuitionsAsync(target_student_id, auth_token)
             
             if not tuition_ids:
-                logger.warning(f"⚠️ No unpaid tuitions found for student {target_student_id}")
+                logger.warning(f"No unpaid tuitions found for student {target_student_id}")
                 raise HTTPException(
                     status_code=status.HTTP_404_NOT_FOUND,
                     detail=f"No unpaid tuitions found for student {target_student_id}"
                 )
             
-            logger.info(f"✅ Customer {customer_id} paying all debt tuitions for student {target_student_id}: {tuition_ids}")
+            logger.info(f"Customer {customer_id} paying all debt tuitions for student {target_student_id}: {tuition_ids}")
             
-            # Generate idempotency key from customer and tuition IDs
             tuition_ids_str = "_".join(sorted(tuition_ids))
             idempotency_key = f"{customer_id}_{tuition_ids_str}_{datetime.utcnow().timestamp()}"
             
-            # Check if ANY payment already exists for these tuitions (pending or completed)
-            logger.info(f"🔍 Checking for existing payments with tuitionIds in: {tuition_ids}")
+            logger.info(f"Checking for existing payments with tuitionIds in: {tuition_ids}")
             existing_payment = await self.payments_collection.find_one({
                 "tuitionIds": {"$in": tuition_ids},
                 "status": {"$in": ["pending", "completed"]}
             })
             
             if existing_payment:
-                logger.warning(f"⚠️ Found existing payment: {existing_payment.get('paymentId')} with tuitionIds: {existing_payment.get('tuitionIds')} and status: {existing_payment.get('status')}")
-                # If the payment belongs to a different customer, inform them
+                logger.warning(f"Found existing payment: {existing_payment.get('paymentId')} with tuitionIds: {existing_payment.get('tuitionIds')} and status: {existing_payment.get('status')}")
                 if existing_payment.get("customerId") != customer_id:
                     raise HTTPException(
                         status_code=status.HTTP_409_CONFLICT,
@@ -87,7 +82,6 @@ class PaymentService:
             total_amount = 0.0
             
             for tuition_data in tuition_data_list:
-                # Double-check if tuition is already paid (should not happen if filtered correctly)
                 if tuition_data.get("status") == "paid":
                     raise HTTPException(
                         status_code=status.HTTP_400_BAD_REQUEST,
@@ -96,10 +90,8 @@ class PaymentService:
                 
                 total_amount += tuition_data.get("tuition_amount", 0)
             
-            # Generate payment ID
             payment_id = f"PAY{int(datetime.utcnow().timestamp())}{str(uuid.uuid4())[:6]}"
             
-            # Create payment document with multiple tuition IDs
             payment = PaymentModel(
                 paymentId=payment_id,
                 customerId=customer_id,
@@ -107,18 +99,13 @@ class PaymentService:
                 idempotency_key=idempotency_key,
                 amount=total_amount,
                 status="pending",
-                otp_attempts=0,
-                is_locked=False,
-                created_at=datetime.utcnow(),
-                expired_at=datetime.utcnow() + timedelta(minutes=self.PAYMENT_EXPIRY_MINUTES)
+                created_at=datetime.utcnow()
             )
             
-            # Insert into database
             payment_dict = payment.model_dump(by_alias=True, exclude={"id"})
             try:
                 result = await self.payments_collection.insert_one(payment_dict)
             except Exception as db_error:
-                # Handle MongoDB duplicate key error (race condition)
                 if "duplicate key error" in str(db_error).lower():
                     raise HTTPException(
                         status_code=status.HTTP_409_CONFLICT,
@@ -126,7 +113,6 @@ class PaymentService:
                     )
                 raise
             
-            # Notify other services and automatically request OTP
             logger.info(f"Attempting to send OTP to email: {user_email}")
             otp_result = await self._notifyPaymentCreatedAsync(payment, user_email)
             
@@ -184,20 +170,6 @@ class PaymentService:
             raise HTTPException(
                 status_code=status.HTTP_400_BAD_REQUEST,
                 detail=f"Cannot request OTP for payment with status: {payment.status}"
-            )
-        
-        if payment.is_locked:
-            raise HTTPException(
-                status_code=status.HTTP_423_LOCKED,
-                detail="Payment is locked due to multiple failed attempts. Please create a new payment."
-            )
-        
-        # Check if payment expired
-        if payment.expired_at and datetime.utcnow() > payment.expired_at:
-            await self._updatePaymentStatusAsync(payment_id, "failed")
-            raise HTTPException(
-                status_code=status.HTTP_400_BAD_REQUEST,
-                detail="Payment has expired"
             )
         
         # Call OTP service to generate and send OTP
@@ -273,22 +245,9 @@ class PaymentService:
                 detail=f"Cannot verify OTP for payment with status: {payment.status}"
             )
         
-        if payment.is_locked:
-            raise HTTPException(
-                status_code=status.HTTP_423_LOCKED,
-                detail="Payment is locked due to multiple failed attempts"
-            )
-        
-        # Increment OTP attempts
-        new_attempts = payment.otp_attempts + 1
-        await self.payments_collection.update_one(
-            {"paymentId": payment_id},
-            {"$set": {"otp_attempts": new_attempts}}
-        )
-        
         # Verify OTP with OTP service
         try:
-            logger.info(f"Verifying OTP for payment {payment_id}, attempt {new_attempts}/{self.MAX_OTP_ATTEMPTS}")
+            logger.info(f"Verifying OTP for payment {payment_id}")
             
             async with httpx.AsyncClient() as client:
                 response = await client.post(
@@ -304,34 +263,16 @@ class PaymentService:
                 logger.info(f"OTP service response: status={response.status_code}, body={response.text}")
                 
                 if response.status_code == 200:
-                    # OTP verified successfully, process payment
                     result = response.json()
                     
                     if not result.get("success"):
-                        # OTP verification failed but service returned 200
                         error_msg = result.get("message", "OTP verification failed")
-                        attempts_remaining = result.get("attempts_remaining", 0)
-                        is_locked = result.get("locked", False)
                         
-                        logger.warning(f"OTP verification failed: {error_msg}, attempts_remaining={attempts_remaining}")
-                        
-                        if is_locked or new_attempts >= self.MAX_OTP_ATTEMPTS:
-                            # Lock payment
-                            await self.payments_collection.update_one(
-                                {"paymentId": payment_id},
-                                {"$set": {
-                                    "is_locked": True,
-                                    "status": "cancelled"
-                                }}
-                            )
-                            raise HTTPException(
-                                status_code=status.HTTP_423_LOCKED,
-                                detail="Maximum OTP attempts reached. Payment has been cancelled."
-                            )
+                        logger.warning(f"OTP verification failed: {error_msg}")
                         
                         raise HTTPException(
                             status_code=status.HTTP_400_BAD_REQUEST,
-                            detail=f"{error_msg}. Attempts remaining: {self.MAX_OTP_ATTEMPTS - new_attempts}"
+                            detail=error_msg
                         )
                     
                     # Process the transaction in try-catch block
@@ -349,62 +290,51 @@ class PaymentService:
                             {"paymentId": payment_id},
                             {"$set": {
                                 "status": "completed",
-                                "otp_attempts": new_attempts,
-                                "is_locked": False,
-                                "expired_at": None,
                                 "completed_at": completed_at
                             }}
                         )
                         
                         logger.info(f"Payment {payment_id} completed successfully - Amount {payment.amount} deducted from customer {payment.customerId}")
                         
-                        # 4. Generate new JWT token with updated balance
                         from app.core.security import create_access_token
                         from app.db.mongodb import auth_database
                         
-                        # Get updated user data
                         users_collection = auth_database["users"]
                         user = await users_collection.find_one({"customerId": payment.customerId})
                         
                         new_access_token = None
                         if user:
-                            # Create token data with updated balance
                             token_data = {
                                 "sub": user.get("username"),
                                 "customerId": user.get("customerId"),
                                 "username": user.get("username"),
                                 "email": user.get("email"),
-                                "balance": new_balance  # Include updated balance
+                                "balance": new_balance
                             }
                             
-                            logger.info(f"🔑 Creating JWT token with data: {token_data}")
+                            logger.info(f"Creating JWT token with data: {token_data}")
                             
-                            # Create new access token
                             access_token_expires = timedelta(minutes=settings.ACCESS_TOKEN_EXPIRE_MINUTES)
                             new_access_token = create_access_token(
                                 data=token_data,
                                 expires_delta=access_token_expires
                             )
-                            logger.info(f"✅ Generated new JWT token with updated balance {new_balance} for customer {payment.customerId}")
+                            logger.info(f"Generated new JWT token with updated balance {new_balance} for customer {payment.customerId}")
                             
-                            # Verify the token contains the correct balance
                             from app.core.security import decode_access_token
                             decoded = decode_access_token(new_access_token)
                             if decoded:
-                                logger.info(f"🔍 Decoded JWT token balance: {decoded.get('balance')} (expected: {new_balance})")
+                                logger.info(f"Decoded JWT token balance: {decoded.get('balance')} (expected: {new_balance})")
                             else:
-                                logger.error("❌ Failed to decode newly created JWT token")
+                                logger.error("Failed to decode newly created JWT token")
                         else:
-                            logger.warning(f"⚠️ Could not generate new token - user not found")
+                            logger.warning(f"Could not generate new token - user not found")
                         
-                        # 5. Send transaction completion emails to customer and recipient
                         try:
                             await self._sendTransactionCompletionEmailAsync(payment, completed_at, auth_token)
                         except Exception as e:
-                            # Don't fail the payment if email sending fails
-                            logger.warning(f"⚠️ Failed to send transaction completion email: {e}")
+                            logger.warning(f"Failed to send transaction completion email: {e}")
                         
-                        # 5. Publish payment completion event via Redis message broker
                         try:
                             from app.broker.redis_broker import publish_event
                             await publish_event(
@@ -419,8 +349,7 @@ class PaymentService:
                                 }
                             )
                         except Exception as e:
-                            # Don't fail the payment if event publishing fails
-                            logger.warning(f"⚠️ Failed to publish payment completion event: {e}")
+                            logger.warning(f"Failed to publish payment completion event: {e}")
                         
                     except Exception as e:
                         logger.error(f"Error processing transaction: {e}")
@@ -448,24 +377,10 @@ class PaymentService:
                     
                 elif response.status_code == 400:
                     # OTP verification failed
-                    if new_attempts >= self.MAX_OTP_ATTEMPTS:
-                        # Lock payment after max attempts
-                        await self.payments_collection.update_one(
-                            {"paymentId": payment_id},
-                            {"$set": {
-                                "is_locked": True,
-                                "status": "cancelled"
-                            }}
-                        )
-                        raise HTTPException(
-                            status_code=status.HTTP_423_LOCKED,
-                            detail="Maximum OTP attempts reached. Payment has been cancelled."
-                        )
-                    
                     error_detail = response.json().get("detail", "Invalid OTP")
                     raise HTTPException(
                         status_code=status.HTTP_400_BAD_REQUEST,
-                        detail=f"{error_detail}. Attempts remaining: {self.MAX_OTP_ATTEMPTS - new_attempts}"
+                        detail=error_detail
                     )
                 else:
                     raise HTTPException(
@@ -583,19 +498,17 @@ class PaymentService:
             
             users_collection = auth_database["users"]
             
-            logger.info(f"🔍 Looking for customer with customerId: {customer_id}")
+            logger.info(f"Looking for customer with customerId: {customer_id}")
             
-            # Find the user by customerId field (not _id)
             user = await users_collection.find_one({"customerId": customer_id})
             
             if not user:
-                # Try to find any user to debug the field name
                 sample_user = await users_collection.find_one({})
-                logger.error(f"🔍 Customer not found. Sample user structure: {sample_user}")
-                logger.error(f"🔍 Searched for customerId: {customer_id}")
+                logger.error(f"Customer not found. Sample user structure: {sample_user}")
+                logger.error(f"Searched for customerId: {customer_id}")
                 raise Exception(f"Customer {customer_id} not found")
             
-            logger.info(f"🔍 Found customer: {user.get('customerId')} with balance: {user.get('balance', 0)}")
+            logger.info(f"Found customer: {user.get('customerId')} with balance: {user.get('balance', 0)}")
             
             current_balance = user.get("balance", 0)
             if current_balance < amount:
@@ -615,10 +528,10 @@ class PaymentService:
             if result.modified_count == 0:
                 raise Exception(f"Failed to update balance for customer {customer_id}")
             
-            logger.info(f"✅ Deducted {amount} from customer {customer_id}. New balance: {new_balance}")
+            logger.info(f"Deducted {amount} from customer {customer_id}. New balance: {new_balance}")
             return new_balance
         except Exception as e:
-            logger.error(f"❌ Error deducting customer balance: {e}")
+            logger.error(f"Error deducting customer balance: {e}")
             raise
     
     async def _updateTuitionStatusAsync(self, tuition_id: str):
@@ -644,9 +557,9 @@ class PaymentService:
             if result.modified_count == 0:
                 logger.warning(f"No tuition found with ID {tuition_id} to update")
             else:
-                logger.info(f"✅ Updated tuition {tuition_id} to paid status")
+                logger.info(f"Updated tuition {tuition_id} to paid status")
         except Exception as e:
-            logger.error(f"❌ Error updating tuition status: {e}")
+            logger.error(f"Error updating tuition status: {e}")
             raise
     
     async def _sendTransactionCompletionEmailAsync(self, payment: PaymentModel, completed_at: datetime, auth_token: str):
@@ -744,7 +657,7 @@ class PaymentService:
                 }
             }
             
-            logger.info(f"📧 Sending notification payload: {notification_payload}")
+            logger.info(f"Sending notification payload: {notification_payload}")
             
             async with httpx.AsyncClient() as client:
                 email_response = await client.post(
@@ -754,13 +667,13 @@ class PaymentService:
                     timeout=10.0
                 )
                 
-                logger.info(f"📧 Notification response: {email_response.status_code} - {email_response.text}")
+                logger.info(f"Notification response: {email_response.status_code} - {email_response.text}")
                 
                 if email_response.status_code == 200:
                     if is_self_payment:
-                        logger.info(f"✅ Transaction completion email sent to {payer_email}")
+                        logger.info(f"Transaction completion email sent to {payer_email}")
                     else:
-                        logger.info(f"✅ Transaction completion emails sent to payer ({payer_email}) and recipient ({recipient_email})")
+                        logger.info(f"Transaction completion emails sent to payer ({payer_email}) and recipient ({recipient_email})")
                 else:
                     logger.error(f"Failed to send transaction emails: {email_response.text}")
                     
@@ -787,7 +700,7 @@ class PaymentService:
             logger.info(f"[AUTO-OTP] Customer ID: {payment.customerId}, Email: {user_email}")
             
             if not user_email:
-                logger.error(f"[AUTO-OTP] ❌ No email provided for customer {payment.customerId}. Cannot send OTP automatically.")
+                logger.error(f"[AUTO-OTP] No email provided for customer {payment.customerId}. Cannot send OTP automatically.")
                 logger.info(f"[AUTO-OTP] User must manually request OTP via POST /api/payment/{payment.paymentId}/otp")
                 return None
             
@@ -818,26 +731,25 @@ class PaymentService:
                     logger.info(f"[AUTO-OTP] OTP Service Response Status: {response.status_code}")
                     
                     if response.status_code == 201:
-                        logger.info(f"[AUTO-OTP] ✅ OTP generated and email sent successfully to {user_email}")
+                        logger.info(f"[AUTO-OTP] OTP generated and email sent successfully to {user_email}")
                         logger.info(f"[AUTO-OTP] User can now verify OTP for payment {payment.paymentId}")
-                        # Return OTP expiration info
                         otp_response = response.json()
                         return {
                             "success": True,
                             "expires_in": otp_response.get("expires_in", 60)
                         }
                     else:
-                        logger.error(f"[AUTO-OTP] ⚠️ Failed to auto-generate OTP: {response.status_code}")
+                        logger.error(f"[AUTO-OTP] Failed to auto-generate OTP: {response.status_code}")
                         logger.error(f"[AUTO-OTP] Response: {response.text}")
                         logger.info(f"[AUTO-OTP] User can manually request OTP via POST /api/payment/{payment.paymentId}/otp")
                         return None
                         
             except httpx.TimeoutException as e:
-                logger.error(f"[AUTO-OTP] ❌ OTP service timeout: {e}")
+                logger.error(f"[AUTO-OTP] OTP service timeout: {e}")
                 logger.info(f"[AUTO-OTP] User can manually request OTP via POST /api/payment/{payment.paymentId}/otp")
                 return None
             except httpx.RequestError as e:
-                logger.error(f"[AUTO-OTP] ❌ Error calling OTP service: {e}")
+                logger.error(f"[AUTO-OTP] Error calling OTP service: {e}")
                 logger.error(f"[AUTO-OTP] OTP Service URL attempted: {otp_url}")
                 logger.info(f"[AUTO-OTP] User can manually request OTP via POST /api/payment/{payment.paymentId}/otp")
                 return None

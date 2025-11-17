@@ -28,14 +28,14 @@ app.add_middleware(
 async def startup_db_client():
     """Connect to MongoDB on startup."""
     await connect_to_mongodb()
-    print("🚀 Auth Service started successfully")
+    print("Auth Service started successfully")
 
 
 @app.on_event("shutdown")
 async def shutdown_db_client():
     """Close MongoDB connection on shutdown."""
     await close_mongodb_connection()
-    print("👋 Auth Service shutdown")
+    print("Auth Service shutdown")
 
 
 # Include routers

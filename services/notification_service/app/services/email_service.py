@@ -130,7 +130,7 @@ class EmailService:
                     </div>
                     
                     <div class="warning">
-                        <strong>⚠️ Important:</strong><br>
+                        <strong>Important:</strong><br>
                         • This code will expire in <strong>{expires_in} seconds</strong><br>
                         • You have <strong>3 attempts</strong> to enter the correct code<br>
                         • Do not share this code with anyone
@@ -269,7 +269,7 @@ class EmailService:
                     <h1>{title}</h1>
                 </div>
                 <div class="content">
-                    <div class="success-icon">✓</div>
+                    <div class="success-icon">&check;</div>
                     <h2>Transaction Successful</h2>
                     <p>{message}</p>
                     
