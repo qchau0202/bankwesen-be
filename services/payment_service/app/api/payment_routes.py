@@ -87,7 +87,8 @@ async def create_payment(
             otp_attempts=payment.otp_attempts,
             is_locked=payment.is_locked,
             created_at=payment.created_at,
-            expired_at=payment.expired_at
+            expired_at=payment.expired_at,
+            otp_expires_in=getattr(payment, 'otp_expires_in', None)
         )
     except HTTPException:
         raise
@@ -192,7 +193,8 @@ async def verify_payment_otp(
         # Extract JWT token for internal service calls
         auth_token = credentials.credentials
         
-        payment = await payment_service.verifyOtpAsync(paymentID, request.otp_code, auth_token)
+        result = await payment_service.verifyOtpAsync(paymentID, request.otp_code, auth_token)
+        payment = result["payment"]
         
         return OTPVerifyResponse(
             success=True,
@@ -208,7 +210,10 @@ async def verify_payment_otp(
                 is_locked=payment.is_locked,
                 created_at=payment.created_at,
                 expired_at=payment.expired_at
-            )
+            ),
+            new_access_token=result.get("new_access_token"),
+            token_type=result.get("token_type"),
+            expires_in=result.get("expires_in")
         )
     except HTTPException:
         raise

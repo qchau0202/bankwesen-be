@@ -15,21 +15,23 @@ async def connect_to_mongodb():
         client = AsyncIOMotorClient(
             settings.MONGODB_URL,
             tlsCAFile=certifi.where(),
-            serverSelectionTimeoutMS=5000,
-            connectTimeoutMS=10000,
-            socketTimeoutMS=10000
+            serverSelectionTimeoutMS=30000,  # 30 seconds
+            connectTimeoutMS=30000,  # 30 seconds
+            socketTimeoutMS=30000,  # 30 seconds
+            retryWrites=True,
+            retryReads=True
         )
 
         # Test connection first
         await client.admin.command('ping')
-        print(f"✅ Connected to MongoDB: {settings.DATABASE_NAME}")
+        print(f"Connected to MongoDB: {settings.DATABASE_NAME}")
 
         # Assign to global only if success
         mongodb_client = client
 
     except Exception as e:
-        print(f"❌ Could not connect to MongoDB: {e}")
-        print("⚠️  Warning: MongoDB connection failed. API will work but database operations will fail.")
+        print(f"Could not connect to MongoDB: {e}")
+        print("Warning: MongoDB connection failed. API will work but database operations will fail.")
         mongodb_client = None  # ensure it’s explicitly None
 
 
@@ -39,7 +41,7 @@ async def close_mongodb_connection():
     if mongodb_client:
         mongodb_client.close()
         mongodb_client = None
-        print("✅ MongoDB connection closed")
+        print("MongoDB connection closed")
 
 
 def get_database():

@@ -44,6 +44,7 @@ class PaymentResponse(BaseModel):
     is_locked: bool
     created_at: datetime
     expired_at: Optional[datetime] = None
+    otp_expires_in: Optional[int] = Field(None, description="OTP expiration time in seconds (60 seconds)")
     
     class Config:
         json_schema_extra = {
@@ -57,7 +58,8 @@ class PaymentResponse(BaseModel):
                 "otp_attempts": 0,
                 "is_locked": False,
                 "created_at": "2024-11-15T10:00:00",
-                "expired_at": "2024-11-15T11:00:00"
+                "expired_at": "2024-11-15T11:00:00",
+                "otp_expires_in": 60
             }
         }
 
@@ -87,6 +89,9 @@ class OTPVerifyResponse(BaseModel):
     success: bool
     message: str
     payment: Optional[PaymentResponse] = None
+    new_access_token: Optional[str] = Field(None, description="New JWT access token with updated balance")
+    token_type: Optional[str] = Field(None, description="Token type (bearer)")
+    expires_in: Optional[int] = Field(None, description="Token expiration time in seconds")
     
     class Config:
         json_schema_extra = {
@@ -104,7 +109,10 @@ class OTPVerifyResponse(BaseModel):
                     "is_locked": False,
                     "created_at": "2024-11-15T10:00:00",
                     "expired_at": None
-                }
+                },
+                "new_access_token": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9...",
+                "token_type": "bearer",
+                "expires_in": 3600
             }
         }
 

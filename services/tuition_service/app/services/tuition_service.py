@@ -76,10 +76,8 @@ class TuitionService:
                 semester=tuition_doc.get("semester"),
                 academic_year=tuition_doc.get("academic_year"),
                 tuition_amount=tuition_doc.get("tuition_amount"),
-                due_date=tuition_doc.get("due_date"),
                 status=tuition_doc.get("status", "debt"),
-                created_at=tuition_doc.get("created_at", datetime.utcnow()),
-                updated_at=tuition_doc.get("updated_at")
+                created_at=tuition_doc.get("created_at", datetime.utcnow())
             )
             tuitions.append(tuition_response)
             
@@ -129,10 +127,8 @@ class TuitionService:
             semester=tuition_doc.get("semester"),
             academic_year=tuition_doc.get("academic_year"),
             tuition_amount=tuition_doc.get("tuition_amount"),
-            due_date=tuition_doc.get("due_date"),
             status=tuition_doc.get("status", "debt"),
-            created_at=tuition_doc.get("created_at", datetime.utcnow()),
-            updated_at=tuition_doc.get("updated_at")
+            created_at=tuition_doc.get("created_at", datetime.utcnow())
         )
     
     async def updateTuitionStatusAsync(self, tuition_id: str, status: str) -> TuitionResponse:
@@ -169,8 +165,7 @@ class TuitionService:
         result = await self.collection.update_one(
             {"tuitionId": {"$regex": f"^{tuition_id}$", "$options": "i"}},
             {"$set": {
-                "status": status,
-                "updated_at": datetime.utcnow()
+                "status": status
             }}
         )
         

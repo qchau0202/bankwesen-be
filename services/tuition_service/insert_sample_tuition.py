@@ -28,7 +28,7 @@ async def insert_sample_tuition():
     print(f"🔄 Inserting sample data into {DATABASE_NAME}...")
     
     # Clear existing data (optional - comment out if you want to keep existing data)
-    result = await db.Tuition.delete_many({})
+    result = await db.tuitions.delete_many({})
     print(f"✅ Cleared {result.deleted_count} existing records")
     
     # Current time in UTC+7
@@ -47,7 +47,6 @@ async def insert_sample_tuition():
             "semester": "Semester I",
             "academic_year": "2022-2023",
             "tuition_amount": 14000000.00,  # 14 million VND
-            "due_date": now_utc7 - timedelta(days=700),
             "status": "paid",
             "created_at": now_utc7 - timedelta(days=750)
         },
@@ -59,7 +58,6 @@ async def insert_sample_tuition():
             "semester": "Semester II",
             "academic_year": "2022-2023",
             "tuition_amount": 14000000.00,  # 14 million VND
-            "due_date": now_utc7 - timedelta(days=550),
             "status": "paid",
             "created_at": now_utc7 - timedelta(days=600)
         },
@@ -71,7 +69,6 @@ async def insert_sample_tuition():
             "semester": "Semester I",
             "academic_year": "2023-2024",
             "tuition_amount": 15000000.00,  # 15 million VND
-            "due_date": now_utc7 - timedelta(days=400),
             "status": "paid",
             "created_at": now_utc7 - timedelta(days=450)
         },
@@ -83,7 +80,6 @@ async def insert_sample_tuition():
             "semester": "Semester II",
             "academic_year": "2023-2024",
             "tuition_amount": 15000000.00,  # 15 million VND
-            "due_date": now_utc7 - timedelta(days=250),
             "status": "paid",
             "created_at": now_utc7 - timedelta(days=300)
         },
@@ -95,7 +91,6 @@ async def insert_sample_tuition():
             "semester": "Semester I",
             "academic_year": "2024-2025",
             "tuition_amount": 16000000.00,  # 16 million VND
-            "due_date": now_utc7 + timedelta(days=30),
             "status": "debt",
             "created_at": now_utc7
         },
@@ -109,7 +104,6 @@ async def insert_sample_tuition():
             "semester": "Semester I",
             "academic_year": "2023-2024",
             "tuition_amount": 17000000.00,  # 17 million VND
-            "due_date": now_utc7 - timedelta(days=400),
             "status": "paid",
             "created_at": now_utc7 - timedelta(days=450)
         },
@@ -121,7 +115,6 @@ async def insert_sample_tuition():
             "semester": "Semester II",
             "academic_year": "2023-2024",
             "tuition_amount": 17000000.00,  # 17 million VND
-            "due_date": now_utc7 - timedelta(days=250),
             "status": "paid",
             "created_at": now_utc7 - timedelta(days=300)
         },
@@ -133,7 +126,6 @@ async def insert_sample_tuition():
             "semester": "Semester I",
             "academic_year": "2024-2025",
             "tuition_amount": 18000000.00,  # 18 million VND
-            "due_date": now_utc7 + timedelta(days=45),
             "status": "debt",
             "created_at": now_utc7
         },
@@ -147,7 +139,6 @@ async def insert_sample_tuition():
             "semester": "Semester II",
             "academic_year": "2023-2024",
             "tuition_amount": 16000000.00,  # 16 million VND
-            "due_date": now_utc7 - timedelta(days=250),
             "status": "paid",
             "created_at": now_utc7 - timedelta(days=300)
         },
@@ -159,7 +150,6 @@ async def insert_sample_tuition():
             "semester": "Semester I",
             "academic_year": "2024-2025",
             "tuition_amount": 16500000.00,  # 16.5 million VND
-            "due_date": now_utc7 + timedelta(days=20),
             "status": "paid",
             "created_at": now_utc7 - timedelta(days=10)
         },
@@ -173,7 +163,6 @@ async def insert_sample_tuition():
             "semester": "Semester I",
             "academic_year": "2024-2025",
             "tuition_amount": 20000000.00,  # 20 million VND (international program)
-            "due_date": now_utc7 + timedelta(days=15),
             "status": "debt",
             "created_at": now_utc7
         },
@@ -188,7 +177,6 @@ async def insert_sample_tuition():
             "semester": "Semester I",
             "academic_year": "2023-2024",
             "tuition_amount": 14000000.00,  # 14 million VND
-            "due_date": now_utc7 - timedelta(days=400),
             "status": "debt",  # Old debt - must be paid first
             "created_at": now_utc7 - timedelta(days=450)
         },
@@ -200,7 +188,6 @@ async def insert_sample_tuition():
             "semester": "Semester II",
             "academic_year": "2023-2024",
             "tuition_amount": 14000000.00,  # 14 million VND
-            "due_date": now_utc7 - timedelta(days=250),
             "status": "debt",  # Old debt - must be paid with above
             "created_at": now_utc7 - timedelta(days=300)
         },
@@ -212,27 +199,26 @@ async def insert_sample_tuition():
             "semester": "Semester I",
             "academic_year": "2024-2025",
             "tuition_amount": 15000000.00,  # 15 million VND
-            "due_date": now_utc7 + timedelta(days=25),
-            "status": "debt",  # Current year debt - must pay all together
+            "status": "debt",
             "created_at": now_utc7
         }
     ]
     
     # Insert all sample records
-    result = await db.Tuition.insert_many(sample_tuitions)
+    result = await db.tuitions.insert_many(sample_tuitions)
     print(f"✅ Inserted {len(result.inserted_ids)} tuition records")
     
     # Create indexes for better query performance
-    await db.Tuition.create_index("tuitionId", unique=True)
-    await db.Tuition.create_index("studentId")
-    await db.Tuition.create_index([("studentId", 1), ("academic_year", -1)])
+    await db.tuitions.create_index("tuitionId", unique=True)
+    await db.tuitions.create_index("studentId")
+    await db.tuitions.create_index([("studentId", 1), ("academic_year", -1)])
     print("✅ Created indexes")
     
     # Display summary statistics
-    total_records = await db.Tuition.count_documents({})
-    debt_records = await db.Tuition.count_documents({"status": "debt"})
-    paid_records = await db.Tuition.count_documents({"status": "paid"})
-    partial_records = await db.Tuition.count_documents({"status": "partial"})
+    total_records = await db.tuitions.count_documents({})
+    debt_records = await db.tuitions.count_documents({"status": "debt"})
+    paid_records = await db.tuitions.count_documents({"status": "paid"})
+    partial_records = await db.tuitions.count_documents({"status": "partial"})
     
     # Calculate total amounts
     pipeline = [
@@ -241,7 +227,7 @@ async def insert_sample_tuition():
             "total": {"$sum": "$tuition_amount"}
         }}
     ]
-    amounts_by_status = await db.Tuition.aggregate(pipeline).to_list(None)
+    amounts_by_status = await db.tuitions.aggregate(pipeline).to_list(None)
     
     print(f"\n📊 Database Summary:")
     print(f"   Total Tuition Records: {total_records}")
@@ -255,7 +241,7 @@ async def insert_sample_tuition():
         print(f"   - {status.capitalize()}: {total:,.0f} VND")
     
     # List unique students
-    unique_students = await db.Tuition.distinct("studentId")
+    unique_students = await db.tuitions.distinct("studentId")
     print(f"\n👥 Number of Students: {len(unique_students)}")
     print(f"   Student IDs: {', '.join(unique_students)}")
     
