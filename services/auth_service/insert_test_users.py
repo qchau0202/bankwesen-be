@@ -69,6 +69,7 @@ async def insert_test_users():
             "email": "thanhlongduong6a3@gmail.com",
             "phone_number": "0905877708",
             "balance": 50000000.0,
+            "payment_history": [],
             "created_at": datetime.utcnow()
         },
         {
@@ -79,6 +80,7 @@ async def insert_test_users():
             "email": "duongthanhlong220805@gmail.com",
             "phone_number": "0387504809",
             "balance": 10000000.0,
+            "payment_history": [],
             "created_at": datetime.utcnow()
         }
     ]
