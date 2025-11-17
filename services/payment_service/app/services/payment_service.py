@@ -43,29 +43,34 @@ class PaymentService:
             HTTPException: If payment already exists or tuition not found
         """
         try:
-            # Fetch all unpaid tuitions for the student
+            # Fetch all unpaid tuitions for the student (returns both IDs and full data)
             target_student_id = request.studentId
-            tuition_ids = await self._getAllUnpaidTuitionsAsync(target_student_id, auth_token)
+            logger.info(f"🔍 CREATE PAYMENT REQUEST: Customer {customer_id} wants to pay for student {target_student_id}")
+            
+            tuition_ids, tuition_data_list = await self._getAllUnpaidTuitionsAsync(target_student_id, auth_token)
             
             if not tuition_ids:
+                logger.warning(f"⚠️ No unpaid tuitions found for student {target_student_id}")
                 raise HTTPException(
                     status_code=status.HTTP_404_NOT_FOUND,
                     detail=f"No unpaid tuitions found for student {target_student_id}"
                 )
             
-            logger.info(f"Customer {customer_id} paying all debt tuitions for student {target_student_id}: {tuition_ids}")
+            logger.info(f"✅ Customer {customer_id} paying all debt tuitions for student {target_student_id}: {tuition_ids}")
             
             # Generate idempotency key from customer and tuition IDs
             tuition_ids_str = "_".join(sorted(tuition_ids))
             idempotency_key = f"{customer_id}_{tuition_ids_str}_{datetime.utcnow().timestamp()}"
             
             # Check if ANY payment already exists for these tuitions (pending or completed)
+            logger.info(f"🔍 Checking for existing payments with tuitionIds in: {tuition_ids}")
             existing_payment = await self.payments_collection.find_one({
                 "tuitionIds": {"$in": tuition_ids},
                 "status": {"$in": ["pending", "completed"]}
             })
             
             if existing_payment:
+                logger.warning(f"⚠️ Found existing payment: {existing_payment.get('paymentId')} with tuitionIds: {existing_payment.get('tuitionIds')} and status: {existing_payment.get('status')}")
                 # If the payment belongs to a different customer, inform them
                 if existing_payment.get("customerId") != customer_id:
                     raise HTTPException(
@@ -78,27 +83,17 @@ class PaymentService:
                         detail="Payment already exists for one or more of these tuitions. Please complete or cancel the existing payment first."
                     )
             
-            # Fetch tuition information for all tuitions and calculate total amount
+            # Calculate total amount from the fetched tuition data
             total_amount = 0.0
-            tuition_data_list = []
             
-            for tuition_id in tuition_ids:
-                tuition_data = await self._getTuitionInfoAsync(tuition_id, auth_token)
-                
-                if not tuition_data:
-                    raise HTTPException(
-                        status_code=status.HTTP_404_NOT_FOUND,
-                        detail=f"Tuition with ID {tuition_id} not found"
-                    )
-                
-                # Check if tuition is already paid
+            for tuition_data in tuition_data_list:
+                # Double-check if tuition is already paid (should not happen if filtered correctly)
                 if tuition_data.get("status") == "paid":
                     raise HTTPException(
                         status_code=status.HTTP_400_BAD_REQUEST,
-                        detail=f"Tuition {tuition_id} has already been paid"
+                        detail=f"Tuition {tuition_data.get('tuitionId')} has already been paid"
                     )
                 
-                tuition_data_list.append(tuition_data)
                 total_amount += tuition_data.get("tuition_amount", 0)
             
             # Generate payment ID
@@ -133,7 +128,7 @@ class PaymentService:
             
             # Notify other services and automatically request OTP
             logger.info(f"Attempting to send OTP to email: {user_email}")
-            await self._notifyPaymentCreatedAsync(payment, user_email)
+            otp_result = await self._notifyPaymentCreatedAsync(payment, user_email)
             
             logger.info(f"Payment created: {payment_id} for tuitions {tuition_ids}")
             
@@ -249,7 +244,7 @@ class PaymentService:
                 detail=f"OTP service unavailable: {str(e)}"
             )
     
-    async def verifyOtpAsync(self, payment_id: str, otp_code: str, auth_token: str) -> PaymentModel:
+    async def verifyOtpAsync(self, payment_id: str, otp_code: str, auth_token: str) -> Dict[str, Any]:
         """
         Verify OTP and complete payment
         
@@ -259,7 +254,7 @@ class PaymentService:
             auth_token: JWT token for authenticating internal service calls
             
         Returns:
-            Updated payment
+            Dictionary containing updated payment and new access token (if available)
             
         Raises:
             HTTPException: If verification fails
@@ -342,7 +337,7 @@ class PaymentService:
                     # Process the transaction in try-catch block
                     try:
                         # 1. Deduct customer balance first
-                        await self._deductCustomerBalanceAsync(payment.customerId, payment.amount)
+                        new_balance = await self._deductCustomerBalanceAsync(payment.customerId, payment.amount)
                         
                         # 2. Update all tuition statuses to paid
                         for tuition_id in payment.tuitionIds:
@@ -363,7 +358,46 @@ class PaymentService:
                         
                         logger.info(f"Payment {payment_id} completed successfully - Amount {payment.amount} deducted from customer {payment.customerId}")
                         
-                        # 4. Send transaction completion emails to customer and recipient
+                        # 4. Generate new JWT token with updated balance
+                        from app.core.security import create_access_token
+                        from app.db.mongodb import auth_database
+                        
+                        # Get updated user data
+                        users_collection = auth_database["users"]
+                        user = await users_collection.find_one({"customerId": payment.customerId})
+                        
+                        new_access_token = None
+                        if user:
+                            # Create token data with updated balance
+                            token_data = {
+                                "sub": user.get("username"),
+                                "customerId": user.get("customerId"),
+                                "username": user.get("username"),
+                                "email": user.get("email"),
+                                "balance": new_balance  # Include updated balance
+                            }
+                            
+                            logger.info(f"🔑 Creating JWT token with data: {token_data}")
+                            
+                            # Create new access token
+                            access_token_expires = timedelta(minutes=settings.ACCESS_TOKEN_EXPIRE_MINUTES)
+                            new_access_token = create_access_token(
+                                data=token_data,
+                                expires_delta=access_token_expires
+                            )
+                            logger.info(f"✅ Generated new JWT token with updated balance {new_balance} for customer {payment.customerId}")
+                            
+                            # Verify the token contains the correct balance
+                            from app.core.security import decode_access_token
+                            decoded = decode_access_token(new_access_token)
+                            if decoded:
+                                logger.info(f"🔍 Decoded JWT token balance: {decoded.get('balance')} (expected: {new_balance})")
+                            else:
+                                logger.error("❌ Failed to decode newly created JWT token")
+                        else:
+                            logger.warning(f"⚠️ Could not generate new token - user not found")
+                        
+                        # 5. Send transaction completion emails to customer and recipient
                         try:
                             await self._sendTransactionCompletionEmailAsync(payment, completed_at, auth_token)
                         except Exception as e:
@@ -403,7 +437,14 @@ class PaymentService:
                             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
                             detail="Failed to retrieve updated payment"
                         )
-                    return updated_payment
+                    
+                    # Return payment with new token
+                    return {
+                        "payment": updated_payment,
+                        "new_access_token": new_access_token,
+                        "token_type": "bearer" if new_access_token else None,
+                        "expires_in": settings.ACCESS_TOKEN_EXPIRE_MINUTES * 60 if new_access_token else None
+                    }
                     
                 elif response.status_code == 400:
                     # OTP verification failed
@@ -492,16 +533,16 @@ class PaymentService:
             {"$set": {"status": status}}
         )
     
-    async def _getAllUnpaidTuitionsAsync(self, student_id: str, auth_token: str) -> list:
+    async def _getAllUnpaidTuitionsAsync(self, student_id: str, auth_token: str) -> tuple[list, list]:
         """
-        Get all unpaid tuition IDs for a student from tuition service.
+        Get all unpaid tuition IDs and full data for a student from tuition service.
         
         Args:
             student_id: Student/Customer ID
             auth_token: JWT token for authentication
             
         Returns:
-            List of unpaid tuition IDs
+            Tuple of (unpaid_tuition_ids, unpaid_tuition_data_list)
         """
         try:
             async with httpx.AsyncClient() as client:
@@ -518,45 +559,22 @@ class PaymentService:
                     data = response.json()
                     # Filter only unpaid tuitions
                     tuitions = data.get("tuitions", [])
-                    unpaid_ids = [t["tuitionId"] for t in tuitions if t.get("status") == "debt"]
-                    logger.info(f"Found {len(unpaid_ids)} unpaid tuitions for student {student_id}")
-                    return unpaid_ids
+                    unpaid_tuitions = [t for t in tuitions if t.get("status") == "debt"]
+                    unpaid_ids = [t["tuitionId"] for t in unpaid_tuitions]
+                    logger.info(f"Found {len(unpaid_ids)} unpaid tuitions for student {student_id}: {unpaid_ids}")
+                    return unpaid_ids, unpaid_tuitions
                 elif response.status_code == 404:
                     logger.warning(f"No tuitions found for student {student_id}")
-                    return []
+                    return [], []
                 else:
                     logger.error(f"Error fetching student tuitions: {response.status_code} - {response.text}")
-                    return []
+                    return [], []
         except Exception as e:
             logger.error(f"Error fetching all unpaid tuitions: {e}")
-            return []
+            return [], []
     
-    async def _getTuitionInfoAsync(self, tuition_id: str, auth_token: str) -> Optional[Dict[str, Any]]:
-        """Get tuition information from tuition service"""
-        try:
-            async with httpx.AsyncClient() as client:
-                response = await client.get(
-                    f"{settings.TUITION_SERVICE_URL}/api/tuition/record/{tuition_id}",
-                    headers={
-                        "x-api-key": settings.API_KEY,
-                        "Authorization": f"Bearer {auth_token}"
-                    },
-                    timeout=10.0
-                )
-                
-                if response.status_code == 200:
-                    return response.json()
-                elif response.status_code == 404:
-                    logger.warning(f"Tuition {tuition_id} not found")
-                else:
-                    logger.error(f"Error fetching tuition: {response.status_code} - {response.text}")
-                return None
-        except Exception as e:
-            logger.error(f"Error fetching tuition info: {e}")
-            return None
-    
-    async def _deductCustomerBalanceAsync(self, customer_id: str, amount: float):
-        """Deduct amount from customer's balance directly from auth_db"""
+    async def _deductCustomerBalanceAsync(self, customer_id: str, amount: float) -> float:
+        """Deduct amount from customer's balance directly from auth_db and return new balance"""
         try:
             from app.db.mongodb import auth_database
             
@@ -589,8 +607,7 @@ class PaymentService:
                 {"customerId": customer_id},
                 {
                     "$set": {
-                        "balance": new_balance,
-                        "updated_at": datetime.utcnow()
+                        "balance": new_balance
                     }
                 }
             )
@@ -599,6 +616,7 @@ class PaymentService:
                 raise Exception(f"Failed to update balance for customer {customer_id}")
             
             logger.info(f"✅ Deducted {amount} from customer {customer_id}. New balance: {new_balance}")
+            return new_balance
         except Exception as e:
             logger.error(f"❌ Error deducting customer balance: {e}")
             raise
@@ -618,8 +636,7 @@ class PaymentService:
                 {"tuitionId": {"$regex": f"^{tuition_id}$", "$options": "i"}},
                 {
                     "$set": {
-                        "status": "paid",
-                        "updated_at": datetime.utcnow()
+                        "status": "paid"
                     }
                 }
             )
@@ -657,79 +674,79 @@ class PaymentService:
                 logger.warning(f"Payer {payment.customerId} has no email address")
                 return
             
-            # Get all tuition details for email
-            async with httpx.AsyncClient() as client:
-                # Fetch all tuition records
-                tuition_details = []
-                for tuition_id in payment.tuitionIds:
-                    tuition_response = await client.get(
-                        f"{settings.TUITION_SERVICE_URL}/api/tuition/record/{tuition_id}",
-                        headers={
-                            "x-api-key": settings.API_KEY,
-                            "Authorization": f"Bearer {auth_token}"
-                        },
-                        timeout=10.0
-                    )
-                    
-                    if tuition_response.status_code == 200:
-                        tuition_details.append(tuition_response.json())
-                    else:
-                        logger.warning(f"Failed to get tuition {tuition_id}: {tuition_response.text}")
-                
-                if not tuition_details:
-                    logger.error(f"Failed to get any tuition details")
-                    return
-                
-                # Use first tuition for student info (all tuitions belong to same student)
-                first_tuition = tuition_details[0]
-                recipient_id = first_tuition.get("studentId")
-                
-                # Check if customer is paying for themselves
-                is_self_payment = (payment.customerId == recipient_id)
-                
-                # Get student email from tuition table (NOT from users table)
-                recipient_email = first_tuition.get("studentEmail")
-                recipient_name = first_tuition.get("studentName", recipient_id)
-                
-                if not recipient_email:
-                    logger.error(f"No email found in tuition data for student {recipient_id}")
-                    raise Exception(f"Student email not found in tuition record")
-                
-                if is_self_payment:
-                    logger.info(f"Customer {payment.customerId} paid for their own tuitions - will send to customer email ({payer_email}) and student email ({recipient_email})")
+            # Get student ID from tuition database directly
+            from app.db.mongodb import tuition_database
+            
+            if tuition_database is None:
+                logger.error("Tuition database connection is not initialized")
+                return
+            
+            tuitions_collection = tuition_database["tuitions"]
+            
+            # Get all tuition details for the paid tuitions
+            tuition_details = []
+            for tuition_id in payment.tuitionIds:
+                tuition = await tuitions_collection.find_one({"tuitionId": tuition_id})
+                if tuition:
+                    tuition_details.append(tuition)
                 else:
-                    logger.info(f"Customer {payment.customerId} paid for student {recipient_id}'s tuitions - will send to customer email ({payer_email}) and student email ({recipient_email})")
-                
-                # Prepare tuition details for email
-                tuition_list = []
-                for tuition in tuition_details:
-                    tuition_list.append({
-                        "tuition_id": tuition.get("tuitionId"),
-                        "amount": tuition.get("tuition_amount", 0),
-                        "academic_year": tuition.get("academic_year", "N/A"),
-                        "semester": tuition.get("semester", "N/A"),
-                        "description": f"Tuition Fee - {tuition.get('semester', 'N/A')}"
-                    })
-                
-                # Send email via notification service
-                notification_payload = {
-                    "recipient_email": recipient_email,
-                    "payer_email": payer_email,
-                    "recipient_name": recipient_name,
-                    "payer_name": payer_name,
-                    "transaction_id": str(payment.paymentId),
-                    "payment_id": payment.paymentId,
-                    "amount": payment.amount,
-                    "timestamp": completed_at.isoformat(),
-                    "is_self_payment": is_self_payment,
-                    "tuition_info": {
-                        "student_id": recipient_id,
-                        "tuitions": tuition_list
-                    }
+                    logger.warning(f"Failed to get tuition {tuition_id} from database")
+            
+            if not tuition_details:
+                logger.error(f"Failed to get any tuition details from database")
+                return
+            
+            # Use first tuition for student info (all tuitions belong to same student)
+            first_tuition = tuition_details[0]
+            recipient_id = first_tuition.get("studentId")
+            
+            # Check if customer is paying for themselves
+            is_self_payment = (payment.customerId == recipient_id)
+            
+            # Get student email from tuition table (NOT from users table)
+            recipient_email = first_tuition.get("studentEmail")
+            recipient_name = first_tuition.get("studentName", recipient_id)
+            
+            if not recipient_email:
+                logger.error(f"No email found in tuition data for student {recipient_id}")
+                raise Exception(f"Student email not found in tuition record")
+            
+            if is_self_payment:
+                logger.info(f"Customer {payment.customerId} paid for their own tuitions - will send to customer email ({payer_email}) and student email ({recipient_email})")
+            else:
+                logger.info(f"Customer {payment.customerId} paid for student {recipient_id}'s tuitions - will send to customer email ({payer_email}) and student email ({recipient_email})")
+            
+            # Prepare tuition details for email
+            tuition_list = []
+            for tuition in tuition_details:
+                tuition_list.append({
+                    "tuition_id": tuition.get("tuitionId"),
+                    "amount": tuition.get("tuition_amount", 0),
+                    "academic_year": tuition.get("academic_year", "N/A"),
+                    "semester": tuition.get("semester", "N/A"),
+                    "description": f"Tuition Fee - {tuition.get('semester', 'N/A')}"
+                })
+            
+            # Send email via notification service
+            notification_payload = {
+                "recipient_email": recipient_email,
+                "payer_email": payer_email,
+                "recipient_name": recipient_name,
+                "payer_name": payer_name,
+                "transaction_id": str(payment.paymentId),
+                "payment_id": payment.paymentId,
+                "amount": payment.amount,
+                "timestamp": completed_at.isoformat(),
+                "is_self_payment": is_self_payment,
+                "tuition_info": {
+                    "student_id": recipient_id,
+                    "tuitions": tuition_list
                 }
-                
-                logger.info(f"📧 Sending notification payload: {notification_payload}")
-                
+            }
+            
+            logger.info(f"📧 Sending notification payload: {notification_payload}")
+            
+            async with httpx.AsyncClient() as client:
                 email_response = await client.post(
                     f"{settings.NOTIFICATION_SERVICE_URL}/api/notification/email-transaction",
                     json=notification_payload,
@@ -751,13 +768,16 @@ class PaymentService:
             logger.error(f"Error sending transaction completion email: {e}")
             raise
     
-    async def _notifyPaymentCreatedAsync(self, payment: PaymentModel, user_email: Optional[str] = None):
+    async def _notifyPaymentCreatedAsync(self, payment: PaymentModel, user_email: Optional[str] = None) -> Optional[Dict[str, Any]]:
         """
         Notify other services when payment is created and automatically request OTP.
         
         This method automatically calls the OTP service to generate and send the OTP email
         immediately after payment creation, so the user receives the email without needing
         to make a separate API call.
+        
+        Returns:
+            Dict with OTP expiration info if successful, None otherwise
         
         NOTE: In production, this should be done via message broker (RabbitMQ, Kafka, etc.)
         where OTP service subscribes to "payment.created" events.
@@ -769,7 +789,7 @@ class PaymentService:
             if not user_email:
                 logger.error(f"[AUTO-OTP] ❌ No email provided for customer {payment.customerId}. Cannot send OTP automatically.")
                 logger.info(f"[AUTO-OTP] User must manually request OTP via POST /api/payment/{payment.paymentId}/otp")
-                return
+                return None
             
             logger.info(f"[AUTO-OTP] Automatically requesting OTP for {user_email}...")
             
@@ -800,18 +820,27 @@ class PaymentService:
                     if response.status_code == 201:
                         logger.info(f"[AUTO-OTP] ✅ OTP generated and email sent successfully to {user_email}")
                         logger.info(f"[AUTO-OTP] User can now verify OTP for payment {payment.paymentId}")
+                        # Return OTP expiration info
+                        otp_response = response.json()
+                        return {
+                            "success": True,
+                            "expires_in": otp_response.get("expires_in", 60)
+                        }
                     else:
                         logger.error(f"[AUTO-OTP] ⚠️ Failed to auto-generate OTP: {response.status_code}")
                         logger.error(f"[AUTO-OTP] Response: {response.text}")
                         logger.info(f"[AUTO-OTP] User can manually request OTP via POST /api/payment/{payment.paymentId}/otp")
+                        return None
                         
             except httpx.TimeoutException as e:
                 logger.error(f"[AUTO-OTP] ❌ OTP service timeout: {e}")
                 logger.info(f"[AUTO-OTP] User can manually request OTP via POST /api/payment/{payment.paymentId}/otp")
+                return None
             except httpx.RequestError as e:
                 logger.error(f"[AUTO-OTP] ❌ Error calling OTP service: {e}")
                 logger.error(f"[AUTO-OTP] OTP Service URL attempted: {otp_url}")
                 logger.info(f"[AUTO-OTP] User can manually request OTP via POST /api/payment/{payment.paymentId}/otp")
+                return None
             
             # Future implementation with message broker:
             # await broker.publish("payment.created", {
@@ -827,3 +856,4 @@ class PaymentService:
             # Don't fail payment creation if notification fails
             logger.error(f"[AUTO-OTP] Error in auto OTP generation: {e}")
             logger.info(f"[AUTO-OTP] User can manually request OTP via POST /api/payment/{payment.paymentId}/otp")
+            return None

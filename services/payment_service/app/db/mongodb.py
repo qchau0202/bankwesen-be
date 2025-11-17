@@ -19,14 +19,9 @@ async def connect_to_mongo():
     # Create indexes for payment collection
     payments_collection = database["payments"]
     
-    # Create partial unique index on tuitionId for pending/completed payments
-    # This ensures only one active payment per tuition at the database level
-    await payments_collection.create_index(
-        [("tuitionId", 1)],
-        name="unique_tuition_active_payment",
-        unique=True,
-        partialFilterExpression={"status": {"$in": ["pending", "completed"]}}
-    )
+    # Create index on tuitionIds array for faster lookups
+    # Note: We check for conflicts in application code since payments can have multiple tuition IDs
+    await payments_collection.create_index([("tuitionIds", 1)])
     
     # Create index on customerId for faster queries
     await payments_collection.create_index([("customerId", 1)])

@@ -12,10 +12,8 @@ class TuitionResponse(BaseModel):
     semester: str
     academic_year: str
     tuition_amount: float
-    due_date: datetime
     status: str
     created_at: datetime
-    updated_at: Optional[datetime] = None
     
     class Config:
         json_schema_extra = {
@@ -27,8 +25,7 @@ class TuitionResponse(BaseModel):
                 "semester": "Semester I",
                 "academic_year": "2024-2025",
                 "tuition_amount": 15000000.00,
-                "due_date": "2024-12-31T23:59:59",
-                "status": "pending",
+                "status": "paid",
                 "created_at": "2024-11-15T10:00:00"
             }
         }
