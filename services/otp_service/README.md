@@ -93,23 +93,7 @@ POST /api/otp/verify
 }
 ```
 
-#### 3. Get OTP Status
-```http
-GET /api/otp/{payment_id}/status
-```
-
-**Response:**
-```json
-{
-  "success": true,
-  "message": "OTP is active",
-  "payment_id": "pay_123",
-  "expires_in": 45,
-  "attempts_remaining": 3
-}
-```
-
-#### 4. Cancel OTP
+#### 3. Cancel OTP
 ```http
 DELETE /api/otp/{payment_id}
 ```

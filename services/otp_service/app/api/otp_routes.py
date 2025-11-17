@@ -148,49 +148,6 @@ async def verify_otp(
             detail="Failed to verify OTP"
         )
 
-@router.get("/{payment_id}/status", response_model=OTPResponse)
-async def get_otp_status(
-    payment_id: str,
-    otp_service: OTPService = Depends(get_otp_service)
-):
-    try:
-        # Check if OTP exists
-        otp_data = await otp_service.getOtpDataAsync(payment_id)
-        
-        if not otp_data:
-            raise HTTPException(
-                status_code=status.HTTP_404_NOT_FOUND,
-                detail="No active OTP found for this payment"
-            )
-        
-        # Check if locked
-        is_locked = await otp_service.isPaymentLockedAsync(payment_id)
-        if is_locked:
-            raise HTTPException(
-                status_code=status.HTTP_423_LOCKED,
-                detail="Payment is locked due to too many failed attempts"
-            )
-        
-        # Get remaining time and attempts
-        expires_in = await otp_service.getRemainingTimeAsync(payment_id)
-        attempts_remaining = await otp_service.getAttemptsRemainingAsync(payment_id)
-        
-        return OTPResponse(
-            success=True,
-            message="OTP is active",
-            payment_id=payment_id,
-            expires_in=expires_in,
-            attempts_remaining=attempts_remaining
-        )
-    
-    except HTTPException:
-        raise
-    except Exception as e:
-        logger.error(f"Error getting OTP status: {e}")
-        raise HTTPException(
-            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
-            detail="Failed to get OTP status"
-        )
 
 @router.delete("/{payment_id}", status_code=status.HTTP_204_NO_CONTENT)
 async def cancel_otp(
