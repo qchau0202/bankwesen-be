@@ -1,10 +1,10 @@
 #!/bin/bash
 # Database initialization script for Docker setup
 
-echo "🔄 Waiting for services to be ready..."
+echo "Waiting for services to be ready..."
 sleep 10
 
-echo "📦 Initializing Auth Service database..."
+echo "Initializing Auth Service database..."
 docker exec bankwesen_auth_service python -c "
 import asyncio
 from motor.motor_asyncio import AsyncIOMotorClient
@@ -32,8 +32,7 @@ async def init_auth():
             'email': 'student1@university.edu',
             'phone_number': '0901234567',
             'balance': 5000000.0,
-            'created_at': datetime.utcnow(),
-            'updated_at': datetime.utcnow()
+            'created_at': datetime.utcnow()
         },
         {
             'userid': '523K0002',
@@ -43,19 +42,18 @@ async def init_auth():
             'email': 'student2@university.edu',
             'phone_number': '0902234567',
             'balance': 3000000.0,
-            'created_at': datetime.utcnow(),
-            'updated_at': datetime.utcnow()
+            'created_at': datetime.utcnow()
         }
     ]
     
     await users.insert_many(test_users)
-    print(f'✅ Inserted {len(test_users)} test users')
+    print(f'Inserted {len(test_users)} test users')
     client.close()
 
 asyncio.run(init_auth())
 "
 
-echo "📚 Initializing Tuition Service database..."
+echo "Initializing Tuition Service database..."
 docker exec bankwesen_tuition_service python -c "
 import asyncio
 from motor.motor_asyncio import AsyncIOMotorClient
@@ -93,10 +91,10 @@ async def init_tuition():
             })
     
     await tuition.insert_many(sample_data)
-    print(f'✅ Inserted {len(sample_data)} tuition records')
+    print(f'Inserted {len(sample_data)} tuition records')
     client.close()
 
 asyncio.run(init_tuition())
 "
 
-echo "✅ Database initialization complete!"
+echo "Database initialization complete!"

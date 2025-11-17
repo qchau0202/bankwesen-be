@@ -29,9 +29,9 @@ async def connect_to_mongo():
     # Create index on status for faster queries
     await payments_collection.create_index([("status", 1)])
     
-    print(f"✅ Connected to MongoDB: {settings.DATABASE_NAME}")
-    print(f"✅ Connected to Auth DB: {settings.AUTH_DATABASE_NAME}")
-    print(f"✅ Connected to Tuition DB: {settings.TUITION_DATABASE_NAME}")
+    print(f"Connected to MongoDB: {settings.DATABASE_NAME}")
+    print(f"Connected to Auth DB: {settings.AUTH_DATABASE_NAME}")
+    print(f"Connected to Tuition DB: {settings.TUITION_DATABASE_NAME}")
 
 
 async def close_mongo_connection():
@@ -39,7 +39,7 @@ async def close_mongo_connection():
     global client
     if client:
         client.close()
-        print("❌ Closed MongoDB connection")
+        print("Closed MongoDB connection")
 
 
 def get_database():

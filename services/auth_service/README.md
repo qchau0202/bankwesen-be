@@ -2,7 +2,7 @@
 
 Authentication service with MongoDB Atlas (online database).
 
-## 🔧 Setup
+## Setup
 
 ### 1. Configure Environment Variables
 Make sure `.env` file exists with your MongoDB credentials and API key:
@@ -28,7 +28,7 @@ python insert_test_users.py
 
 **Note**: Run this script whenever you need to reset the test users or after changing the database.
 
-## 🚀 Running
+## Running
 
 ### Local Development (Recommended for testing)
 ```bash
@@ -42,7 +42,7 @@ python -m uvicorn app.main:app --reload --host 0.0.0.0 --port 8001
 docker-compose up auth_service
 ```
 
-## 📌 API Endpoints
+## API Endpoints
 
 ### Authentication
 - `POST /api/v1/auth/login` - User login (requires API key)
@@ -55,7 +55,7 @@ docker-compose up auth_service
 - `GET /health` - Health check
 - `GET /hello` - Hello World
 
-## 🧪 Testing
+## Testing
 
 ### Login (requires API key)
 ```bash
@@ -85,11 +85,11 @@ curl -X POST http://localhost:8001/api/v1/auth/register \
 curl http://localhost:8001/health
 ```
 
-## 📚 API Documentation
+## API Documentation
 - Swagger UI: http://localhost:8001/docs
 - ReDoc: http://localhost:8001/redoc
 
-## 🔐 Test Users
+## Test Users
 After running `insert_test_users.py`, you can login with:
 - **Student**: `student1` / `password123`
 - **Student**: `student2` / `password123`
@@ -98,7 +98,7 @@ After running `insert_test_users.py`, you can login with:
 
 **Security**: All passwords are hashed with bcrypt before storing in the database.
 
-## 🔑 API Key Protection
+## API Key Protection
 
 The auth service requires an API key for authentication endpoints to prevent unauthorized access.
 
@@ -142,13 +142,13 @@ fetch('http://localhost:8001/api/v1/auth/login', {
 ### Disable API Key (Development Only)
 Set `ENABLE_API_KEY=false` in `.env` to disable API key checking.
 
-## 🌐 CORS Configuration
+## CORS Configuration
 CORS is configured in `.env` file. Update `ALLOWED_ORIGINS` to match your frontend URL:
 ```env
 ALLOWED_ORIGINS=http://localhost:3000,http://localhost:8000
 ```
 
-## 🗄️ Database
+## Database
 - **Type**: MongoDB Atlas (Online)
 - **Database**: auth_db
 - **Collection**: User

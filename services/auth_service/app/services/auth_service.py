@@ -116,8 +116,7 @@ class AuthService:
             "email": register_data.email,
             "phone_number": register_data.phone_number,
             "balance": 100000000.0,
-            "created_at": datetime.utcnow(),
-            "updated_at": datetime.utcnow()
+            "created_at": datetime.utcnow()
         }
         
         # Insert user into database
@@ -171,8 +170,7 @@ class AuthService:
             {"customerId": customer_id},
             {
                 "$set": {
-                    "balance": new_balance,
-                    "updated_at": datetime.utcnow()
+                    "balance": new_balance
                 }
             }
         )

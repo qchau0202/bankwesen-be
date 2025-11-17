@@ -71,19 +71,15 @@ async def request_otp(
                     
                     if notification_response.status_code != 200:
                         logger.warning(f"Failed to send OTP email: {notification_response.text}")
-                        # Continue anyway, log OTP for testing
-                        logger.info(f"⚠️ OTP for payment {request.payment_id}: {otp_code}")
+                        logger.info(f"OTP for payment {request.payment_id}: {otp_code}")
                     else:
-                        logger.info(f"✅ OTP email sent successfully to {request.email}")
-                        # Log OTP for development/testing purposes
-                        logger.info(f"🔑 OTP CODE for payment {request.payment_id}: {otp_code}")
+                        logger.info(f"OTP email sent successfully to {request.email}")
+                        logger.info(f"OTP CODE for payment {request.payment_id}: {otp_code}")
             except Exception as e:
                 logger.error(f"Error sending OTP email: {e}")
-                # Log OTP for testing purposes
-                logger.info(f"⚠️ OTP for payment {request.payment_id}: {otp_code}")
+                logger.info(f"OTP for payment {request.payment_id}: {otp_code}")
         else:
-            # No email provided, log OTP
-            logger.info(f"🔑 OTP CODE for payment {request.payment_id}: {otp_code}")
+            logger.info(f"OTP CODE for payment {request.payment_id}: {otp_code}")
         
         return OTPResponse(
             success=True,

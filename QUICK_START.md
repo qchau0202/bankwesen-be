@@ -2,7 +2,7 @@
 
 Complete banking system with microservices architecture. One-click setup with Docker Compose.
 
-## 🚀 Quick Start (Recommended)
+## Quick Start (Recommended)
 
 ### Prerequisites
 - Docker & Docker Compose installed
@@ -34,7 +34,7 @@ That's it! All services will be running on:
 - **Notification Service**: http://localhost:8004
 - **Tuition Service**: http://localhost:8005
 
-## 📚 API Documentation
+## API Documentation
 
 Access Swagger UI for each service:
 - Gateway: http://localhost:8000/docs
@@ -44,7 +44,7 @@ Access Swagger UI for each service:
 - Notification: http://localhost:8004/docs
 - Tuition: http://localhost:8005/docs
 
-## 🔑 Test Credentials
+## Test Credentials
 
 After running `init-db.ps1` or `init-db.sh`, you can login with:
 
@@ -53,7 +53,7 @@ After running `init-db.ps1` or `init-db.sh`, you can login with:
 | student1  | password123  | 523K0001 | 5,000,000 VND |
 | student2  | password123  | 523K0002 | 3,000,000 VND |
 
-## 🧪 Quick API Test
+## Quick API Test
 
 ### 1. Login
 ```bash
@@ -82,7 +82,7 @@ curl -X GET http://localhost:8005/api/tuition/523K0002 \
   -H "x-api-key: bankwesen-api-key-2024-secure-change-in-production"
 ```
 
-## 📦 Sample Data Included
+## Sample Data Included
 
 After initialization:
 - **2 test users** (student1, student2)
@@ -90,7 +90,7 @@ After initialization:
 - **Multiple semesters** with different payment statuses
 - **Total tuition**: ~150 million VND
 
-## 🛠️ Management Commands
+## Management Commands
 
 ### Stop All Services
 ```bash
@@ -121,7 +121,7 @@ docker-compose restart tuition_service
 docker-compose up --build
 ```
 
-## 🔧 Development Setup (Without Docker)
+## Development Setup (Without Docker)
 
 If you want to run services locally:
 
@@ -144,7 +144,7 @@ source .venv/bin/activate      # Linux/Mac
 uvicorn app.main:app --reload --port 8001
 ```
 
-## 📋 Architecture
+## Architecture
 
 ```
 ┌─────────────┐
@@ -168,14 +168,14 @@ uvicorn app.main:app --reload --port 8001
           └──────┘   └──────┘
 ```
 
-## 🔐 Security Features
+## Security Features
 
 - **JWT Authentication**: Token-based user authentication
 - **API Key Protection**: Service-level authentication
 - **Role Removed**: Simplified authentication without role-based access
 - **Cross-Student Access**: Students can help pay for each other's tuition
 
-## 🐛 Troubleshooting
+## Troubleshooting
 
 ### Services not starting
 ```bash
@@ -200,7 +200,7 @@ docker-compose up -d
 ### Port conflicts
 Check if ports 8000-8005, 27017, 6379 are available.
 
-## 📝 Environment Variables
+## Environment Variables
 
 Each service has an `.env` file. For Docker, these are overridden in `docker-compose.yml` to use local MongoDB/Redis.
 
@@ -209,7 +209,7 @@ Key variables:
 - `JWT_SECRET_KEY`: Must match across services
 - `API_KEY`: Service authentication key
 
-## 🤝 Contributing
+## Contributing
 
 1. Fork the repository
 2. Create a feature branch
@@ -217,10 +217,10 @@ Key variables:
 4. Test with `docker-compose up --build`
 5. Submit pull request
 
-## 📄 License
+## License
 
 [Your License Here]
 
-## 📧 Support
+## Support
 
 [Your Contact Information]

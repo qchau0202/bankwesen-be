@@ -40,10 +40,7 @@ class PaymentResponse(BaseModel):
     idempotency_key: str
     amount: float
     status: str
-    otp_attempts: int
-    is_locked: bool
     created_at: datetime
-    expired_at: Optional[datetime] = None
     otp_expires_in: Optional[int] = Field(None, description="OTP expiration time in seconds (60 seconds)")
     
     class Config:
@@ -55,10 +52,7 @@ class PaymentResponse(BaseModel):
                 "idempotency_key": "unique-key-12345",
                 "amount": 10000000.00,
                 "status": "pending",
-                "otp_attempts": 0,
-                "is_locked": False,
                 "created_at": "2024-11-15T10:00:00",
-                "expired_at": "2024-11-15T11:00:00",
                 "otp_expires_in": 60
             }
         }
@@ -105,10 +99,7 @@ class OTPVerifyResponse(BaseModel):
                     "idempotency_key": "unique-key-12345",
                     "amount": 5000000.00,
                     "status": "completed",
-                    "otp_attempts": 1,
-                    "is_locked": False,
-                    "created_at": "2024-11-15T10:00:00",
-                    "expired_at": None
+                    "created_at": "2024-11-15T10:00:00"
                 },
                 "new_access_token": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9...",
                 "token_type": "bearer",

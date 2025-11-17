@@ -4,13 +4,13 @@ Payment processing service with OTP verification and secure payment flow for tui
 
 ## Features
 
-- ✅ **Secure Payment Processing** - API Key authentication for all endpoints
-- ✅ **OTP Verification** - 60-second OTP with email delivery via internal OTP service
-- ✅ **Idempotency** - Prevents duplicate payments using idempotency keys
-- ✅ **Payment Locking** - Only one payment allowed per tuition per customer
-- ✅ **Attempt Limiting** - Maximum 3 OTP verification attempts
-- ✅ **Message Broker** - Notifies other services of payment events
-- ✅ **Transaction Safety** - Try-catch blocks for transaction processing
+- **Secure Payment Processing** - API Key authentication for all endpoints
+- **OTP Verification** - 60-second OTP with email delivery via internal OTP service
+- **Idempotency** - Prevents duplicate payments using idempotency keys
+- **Payment Locking** - Only one payment allowed per tuition per customer
+- **Attempt Limiting** - Maximum 3 OTP verification attempts
+- **Message Broker** - Notifies other services of payment events
+- **Transaction Safety** - Try-catch blocks for transaction processing
 
 ## Payment Flow
 

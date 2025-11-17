@@ -32,7 +32,6 @@ class UserModel(BaseModel):
     phone_number: Optional[str] = Field(None, description="Phone number")
     balance: float = Field(default=0.0, description="Account balance")
     created_at: Optional[datetime] = Field(default_factory=datetime.utcnow)
-    updated_at: Optional[datetime] = Field(default_factory=datetime.utcnow)
 
     class Config:
         populate_by_name = True

@@ -64,7 +64,7 @@ async def send_transaction_email(request: EmailTransactionRequest):
     2. The person whose tuition was paid (recipient) - if different from payer
     """
     try:
-        logger.info(f"📧 Received transaction email request: payer={request.payer_email}, recipient={request.recipient_email}, is_self_payment={request.is_self_payment}")
+        logger.info(f"Received transaction email request: payer={request.payer_email}, recipient={request.recipient_email}, is_self_payment={request.is_self_payment}")
         customer_sent, student_sent = await email_service.sendTransactionEmailAsync(
             recipient_email=request.recipient_email,
             payer_email=request.payer_email,
