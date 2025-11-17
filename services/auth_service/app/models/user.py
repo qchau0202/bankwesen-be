@@ -53,7 +53,6 @@ class UserModel(BaseModel):
 
 
 class UserInDB(BaseModel):
-    """User model with hashed password for database operations."""
     customerId: str
     username: str
     password_hash: str

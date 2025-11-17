@@ -1,9 +1,3 @@
-"""
-Script to insert test users into MongoDB with hashed passwords.
-This script creates sample users with different roles for testing the authentication system.
-Passwords are securely hashed using bcrypt before storing in the database.
-"""
-
 import asyncio
 import os
 from motor.motor_asyncio import AsyncIOMotorClient
@@ -63,26 +57,37 @@ async def insert_test_users():
     test_users = [
         {
             "customerId": "523K0013",
-            "username": "student1",
-            "password_hash": hash_password("password123"),
+            "username": "longduong",
+            "password_hash": hash_password("123456"),
             "full_name": "Duong Thanh Long",
             "email": "thanhlongduong6a3@gmail.com",
             "phone_number": "0905877708",
-            "balance": 50000000.0,
+            "balance": 500000000.0,
             "payment_history": [],
             "created_at": datetime.utcnow()
         },
         {
             "customerId": "523K0001",
-            "username": "student2",
-            "password_hash": hash_password("password123"),
+            "username": "quocchau",
+            "password_hash": hash_password("123456"),
             "full_name": "Ly Hung Quoc Chau",
-            "email": "duongthanhlong220805@gmail.com",
+            "email": "quocchau4729@gmail.com",
             "phone_number": "0387504809",
-            "balance": 10000000.0,
+            "balance": 10000000000.0,
             "payment_history": [],
             "created_at": datetime.utcnow()
-        }
+        },
+        {
+            "customerId": "523K0026",
+            "username": "kaka",
+            "password_hash": hash_password("123456"),
+            "full_name": "Le Huu Thanh",
+            "email": "duongthanhlong220805@gmail.com",
+            "phone_number": "0909110110",
+            "balance": 100000000000.0,
+            "payment_history": [],
+            "created_at": datetime.utcnow()
+        },
     ]
     
     # Insert test users

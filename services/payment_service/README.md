@@ -20,19 +20,15 @@ Payment processing service with OTP verification and secure payment flow for tui
 3. Message broker notifies other services
 4. Payment is locked for this tuition/customer combination
 
-### 3.2 Request OTP
-1. POST `/api/payment/{paymentID}/otp` → Generates OTP
-2. OTP sent to customer email (60s expiration)
-3. User receives OTP code
-
-### 3.3 Verify OTP
-1. POST `/api/payment/{paymentID}/verify-otp` → Verifies OTP
+### 3.2 Verify OTP
+1. OTP is generated automatically after payment creation and emailed to the payer (expires in 60 seconds)
+2. POST `/api/payment/{paymentID}/verify-otp` → Verifies OTP
 2. **SUCCESS**: 
    - Updates tuition status to "paid"
    - Completes payment
    - Returns payment details
 3. **FAILED**:
-   - **EXPIRED**: User can resend OTP
+   - **EXPIRED**: Payment auto-cancelled, user must restart from 3.1
    - **WRONG OTP**: User can retry (max 3 attempts)
    - **MAX ATTEMPTS**: Payment auto-cancelled, must restart from 3.1
 
@@ -47,7 +43,6 @@ Payment processing service with OTP verification and secure payment flow for tui
 |--------|----------|-------------|------|
 | POST | `/api/payment/` | Create new payment | JWT + API Key |
 | GET | `/api/payment/{paymentID}` | Get payment details | JWT + API Key |
-| POST | `/api/payment/{paymentID}/otp` | Request OTP | JWT + API Key |
 | POST | `/api/payment/{paymentID}/verify-otp` | Verify OTP & complete payment | JWT + API Key |
 | POST | `/api/payment/{paymentID}/cancel` | Cancel payment | JWT + API Key |
 
@@ -94,7 +89,6 @@ Response (201):
   "idempotency_key": "unique-key",
   "amount": 5000000.00,
   "status": "pending",
-  "otp_attempts": 0,
   "is_locked": false,
   "created_at": "2024-11-15T10:00:00",
   "expired_at": "2024-11-15T11:00:00"
@@ -201,7 +195,6 @@ uvicorn app.main:app --reload --port 8003
   "idempotency_key": str,     # Prevents duplicate payments
   "amount": float,            # Payment amount
   "status": str,              # pending, completed, failed, cancelled
-  "otp_attempts": int,        # Number of OTP attempts (max 3)
   "is_locked": bool,          # Locked after max attempts
   "created_at": datetime,     # Payment creation time
   "expired_at": datetime      # Payment expiration time (60 min)

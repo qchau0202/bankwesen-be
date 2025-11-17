@@ -10,7 +10,6 @@ router = APIRouter(prefix="/api/tuition", tags=["Tuition"])
 
 
 def get_tuition_service(db: AsyncIOMotorDatabase = Depends(get_database)) -> TuitionService:
-    """Dependency to get tuition service instance."""
     return TuitionService(db)
 
 
@@ -64,23 +63,47 @@ async def get_student_tuition(
     current_user: Dict[str, Any] = Depends(get_current_user),
     api_key: str = Depends(verify_api_key)
 ) -> StudentTuitionListResponse:
-    """
-    Get tuition information for a specific student.
-    
-    Args:
-        studentId: The student's ID/code (e.g., "523K0001")
-        current_user: Current authenticated user from JWT token
-        api_key: API key for service authentication
-        
-    Returns:
-        StudentTuitionListResponse containing all tuition records and summary
-        
-    Note:
-        Any authenticated student can view any student's tuition records.
-        This design allows students to help pay for each other's tuition fees,
-        supporting scenarios where friends or family assist with payments.
-    """
-    # Allow any authenticated student to view tuition records
-    # This enables students to help pay for each other's tuition
-    
     return await tuition_service.getStudentTuitionsAsync(studentId, None, None)
+
+
+@router.get(
+    "/record/{tuitionId}",
+    response_model=TuitionResponse,
+    responses={
+        200: {
+            "description": "Successfully retrieved tuition record",
+            "model": TuitionResponse
+        },
+        401: {
+            "description": "Unauthorized - Invalid or missing authentication token",
+            "model": ErrorResponse
+        },
+        404: {
+            "description": "Tuition record not found",
+            "model": ErrorResponse
+        }
+    },
+    summary="Get a specific tuition record by tuitionId",
+    description="""
+    Retrieve a detailed tuition record using its unique tuitionId.
+
+    **Authentication Required:**
+    - Valid JWT Bearer token via `Authorization` header
+    - API key via `x-api-key` header
+    """
+)
+async def get_tuition_record(
+    tuitionId: str,
+    tuition_service: TuitionService = Depends(get_tuition_service),
+    current_user: Dict[str, Any] = Depends(get_current_user),
+    api_key: str = Depends(verify_api_key)
+) -> TuitionResponse:
+    try:
+        return await tuition_service.getTuitionByIdAsync(tuitionId)
+    except HTTPException:
+        raise
+    except Exception as e:
+        raise HTTPException(
+            status_code=500,
+            detail=str(e)
+        )

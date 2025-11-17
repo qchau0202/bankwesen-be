@@ -5,17 +5,13 @@ from ..core.security import verify_password, create_access_token, get_password_h
 from ..core.config import settings
 from ..schemas.auth import (
     LoginRequest,
-    RegisterRequest,
     TokenResponse,
     ErrorResponse,
     SuccessResponse,
     TokenData
 )
 
-
 class AuthService:
-    """Authentication service for handling user authentication."""
-
     @staticmethod
     async def authenticateUserAsync(username: str, password: str) -> Optional[Dict[str, Any]]:
         users_collection = get_users_collection()
@@ -78,71 +74,7 @@ class AuthService:
         return AuthService.createUserToken(user)
 
     @staticmethod
-    async def registerAsync(register_data: RegisterRequest) -> Optional[Dict[str, Any]]:
-        """
-        Register a new user.
-        
-        Args:
-            register_data: Registration data including username, password, email, etc.
-            
-        Returns:
-            User data with token if registration successful, None otherwise
-        """
-        users_collection = get_users_collection()
-        
-        # Validate passwords match
-        if register_data.password != register_data.confirm_password:
-            return None
-        
-        # Check if username already exists
-        existing_user = await users_collection.find_one({"username": register_data.username})
-        if existing_user:
-            return None
-        
-        # Check if email already exists
-        existing_email = await users_collection.find_one({"email": register_data.email})
-        if existing_email:
-            return None
-        
-        # Generate customerId (format: ST + timestamp suffix)
-        customerId = f"ST{str(int(datetime.utcnow().timestamp()))[-6:]}"
-        
-        # Create new user document
-        new_user = {
-            "customerId": customerId,
-            "username": register_data.username,
-            "password_hash": get_password_hash(register_data.password),
-            "full_name": register_data.full_name,
-            "email": register_data.email,
-            "phone_number": register_data.phone_number,
-            "balance": 100000000.0,
-            "created_at": datetime.utcnow()
-        }
-        
-        # Insert user into database
-        result = await users_collection.insert_one(new_user)
-        
-        if not result.inserted_id:
-            return None
-        
-        # Return the created user (without password_hash)
-        created_user = await users_collection.find_one({"_id": result.inserted_id})
-        
-        # Create and return token for the new user
-        return AuthService.createUserToken(created_user)
-    
-    @staticmethod
     async def deductBalanceAsync(customer_id: str, amount: float) -> Optional[Dict[str, Any]]:
-        """
-        Deduct amount from customer's balance.
-        
-        Args:
-            customer_id: Customer ID
-            amount: Amount to deduct
-            
-        Returns:
-            Updated user info if successful, None otherwise
-        """
         users_collection = get_users_collection()
         
         # Find user by customerId

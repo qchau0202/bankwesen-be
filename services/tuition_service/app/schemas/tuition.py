@@ -4,7 +4,6 @@ from datetime import datetime
 
 
 class TuitionResponse(BaseModel):
-    """Response model for tuition information."""
     tuitionId: str
     studentId: str
     studentName: str
@@ -32,7 +31,6 @@ class TuitionResponse(BaseModel):
 
 
 class StudentTuitionListResponse(BaseModel):
-    """Response schema for student tuition list."""
     studentId: str
     studentName: str
     studentEmail: EmailStr
@@ -56,7 +54,6 @@ class StudentTuitionListResponse(BaseModel):
 
 
 class ErrorResponse(BaseModel):
-    """Error response schema."""
     detail: str
     
     class Config:

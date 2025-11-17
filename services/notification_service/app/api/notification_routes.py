@@ -16,11 +16,6 @@ email_service = EmailService()
 
 @router.post("/email-otp", response_model=EmailResponse, status_code=status.HTTP_200_OK)
 async def send_otp_email(request: EmailOTPRequest):
-    """
-    Send OTP email to user
-    
-    This endpoint is called by the OTP service after generating an OTP code
-    """
     try:
         logger.info(f"Received request to send OTP email to {request.email} for payment {request.payment_id}")
         
@@ -55,14 +50,6 @@ async def send_otp_email(request: EmailOTPRequest):
 
 @router.post("/email-transaction", response_model=EmailResponse, status_code=status.HTTP_200_OK)
 async def send_transaction_email(request: EmailTransactionRequest):
-    """
-    Send transaction confirmation email to both payer and recipient
-    
-    This endpoint is called after a successful payment transaction.
-    Sends confirmation email to:
-    1. The person who paid (payer)
-    2. The person whose tuition was paid (recipient) - if different from payer
-    """
     try:
         logger.info(f"Received transaction email request: payer={request.payer_email}, recipient={request.recipient_email}, is_self_payment={request.is_self_payment}")
         customer_sent, student_sent = await email_service.sendTransactionEmailAsync(
@@ -70,7 +57,6 @@ async def send_transaction_email(request: EmailTransactionRequest):
             payer_email=request.payer_email,
             recipient_name=request.recipient_name,
             payer_name=request.payer_name,
-            transaction_id=request.transaction_id,
             payment_id=request.payment_id,
             amount=request.amount,
             timestamp=request.timestamp,

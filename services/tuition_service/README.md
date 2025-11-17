@@ -95,10 +95,6 @@ After running `insert_sample_tuition.py`, the following students are available:
 - **523K0004** - Pham Thi D (International program, pending)
 - **523K0005** - Hoang Van E (Overdue payment)
 
-## Currency
-
-All amounts are in **Vietnamese Dong (VND)**. Typical tuition fees range from 10-20 million VND per semester.
-
 ## Data Model
 
 ### Tuition Record

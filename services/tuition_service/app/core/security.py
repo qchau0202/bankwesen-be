@@ -13,18 +13,6 @@ api_key_header = APIKeyHeader(name="x-api-key", auto_error=False)
 
 
 async def verify_api_key(api_key: str = Depends(api_key_header)) -> str:
-    """
-    Dependency to verify API key.
-    
-    Args:
-        api_key: API key from request header
-        
-    Returns:
-        The valid API key
-        
-    Raises:
-        HTTPException: If API key is invalid or missing
-    """
     # Skip API key check if disabled
     if not settings.ENABLE_API_KEY:
         return "disabled"
@@ -45,15 +33,6 @@ async def verify_api_key(api_key: str = Depends(api_key_header)) -> str:
 
 
 def decode_access_token(token: str) -> Optional[Dict[str, Any]]:
-    """
-    Decode and verify a JWT access token.
-    
-    Args:
-        token: JWT token string
-        
-    Returns:
-        Decoded token payload or None if invalid
-    """
     try:
         payload = jwt.decode(
             token, 
@@ -68,18 +47,7 @@ def decode_access_token(token: str) -> Optional[Dict[str, Any]]:
 async def get_current_user(
     credentials: HTTPAuthorizationCredentials = Depends(security)
 ) -> Dict[str, Any]:
-    """
-    Dependency to get the current authenticated user from JWT token.
-    
-    Args:
-        credentials: HTTP Authorization credentials with Bearer token
-        
-    Returns:
-        Dictionary with user information (userid, username)
-        
-    Raises:
-        HTTPException: If token is invalid or expired
-    """
+
     token = credentials.credentials
     
     # Decode token
@@ -111,6 +79,3 @@ async def get_current_user(
         "userid": userid,
         "username": username
     }
-
-
-

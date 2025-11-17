@@ -1,5 +1,5 @@
 from datetime import datetime, timedelta
-from typing import Optional, Dict, Any, TYPE_CHECKING
+from typing import Optional, Dict, Any, TYPE_CHECKING, List
 import uuid
 import httpx
 import logging
@@ -16,7 +16,6 @@ logger = logging.getLogger(__name__)
 
 
 class PaymentService:
-    """Service for handling payment operations"""
     
     PAYMENT_EXPIRY_MINUTES = 60
     
@@ -25,22 +24,6 @@ class PaymentService:
         self.payments_collection = db["payments"]
     
     async def createPaymentAsync(self, request: PaymentCreateRequest, auth_token: str, customer_id: str, user_email: Optional[str] = None) -> PaymentModel:
-        """
-        Create a new payment with idempotency key to prevent duplicates.
-        Automatically fetches all debt tuitions for the specified student.
-        
-        Args:
-            request: Payment creation request with studentId
-            auth_token: JWT token for authenticating internal service calls
-            customer_id: Customer ID extracted from JWT token (who is paying)
-            user_email: User email extracted from JWT token
-            
-        Returns:
-            Created payment
-            
-        Raises:
-            HTTPException: If payment already exists or tuition not found
-        """
         try:
             target_student_id = request.studentId
             logger.info(f"CREATE PAYMENT REQUEST: Customer {customer_id} wants to pay for student {target_student_id}")
@@ -130,107 +113,35 @@ class PaymentService:
             )
     
     async def getPaymentAsync(self, payment_id: str) -> Optional[PaymentModel]:
-        """
-        Get payment by ID
-        
-        Args:
-            payment_id: Payment ID
-            
-        Returns:
-            Payment or None if not found
-        """
         payment_dict = await self.payments_collection.find_one({"paymentId": payment_id})
         if payment_dict:
             return PaymentModel(**payment_dict)
         return None
-    
-    async def requestOtpAsync(self, payment_id: str, email: str) -> Dict[str, Any]:
-        """
-        Request OTP for payment verification
-        
-        Args:
-            payment_id: Payment ID
-            email: Customer email
-            
-        Returns:
-            OTP request response
-            
-        Raises:
-            HTTPException: If payment not found, locked, or expired
-        """
-        payment = await self.getPaymentAsync(payment_id)
-        
-        if not payment:
-            raise HTTPException(
-                status_code=status.HTTP_404_NOT_FOUND,
-                detail="Payment not found"
-            )
-        
-        if payment.status != "pending":
-            raise HTTPException(
-                status_code=status.HTTP_400_BAD_REQUEST,
-                detail=f"Cannot request OTP for payment with status: {payment.status}"
-            )
-        
-        # Call OTP service to generate and send OTP
+
+    async def getCustomerPaymentRecordsAsync(self, customer_id: str, auth_token: str) -> List[Dict[str, Any]]:
         try:
-            otp_url = f"{settings.OTP_SERVICE_URL}/api/otp/request"
-            otp_payload = {
-                "payment_id": payment_id,
-                "tuition_ids": payment.tuitionIds,  # Send all tuition IDs
-                "user_id": payment.customerId,
-                "email": email,
-                "amount": payment.amount
-            }
-            logger.info(f"Requesting OTP from {otp_url}")
-            logger.info(f"OTP payload: payment_id={payment_id}, email={email}, amount={payment.amount}, tuition_ids={payment.tuitionIds}")
-            
-            async with httpx.AsyncClient() as client:
-                response = await client.post(
-                    otp_url,
-                    json=otp_payload,
-                    headers={"x-api-key": settings.API_KEY},
-                    timeout=10.0
+            cursor = self.payments_collection.find({"customerId": customer_id}).sort("created_at", -1)
+            payments: List[PaymentModel] = [PaymentModel(**doc) async for doc in cursor]
+
+            payment_records: List[Dict[str, Any]] = []
+            for payment in payments:
+                tuition_details = await self._fetchTuitionDetailsAsync(payment.tuitionIds, auth_token)
+                payment_records.append(
+                    {
+                        "payment": payment,
+                        "tuitions": tuition_details
+                    }
                 )
-                
-                if response.status_code != 201:
-                    logger.error(f"OTP service returned status {response.status_code}: {response.text}")
-                    raise HTTPException(
-                        status_code=response.status_code,
-                        detail=f"Failed to request OTP: {response.text}"
-                    )
-                
-                logger.info(f"OTP requested successfully for payment {payment_id}")
-                return response.json()
-        
-        except httpx.TimeoutException as e:
-            logger.error(f"OTP service timeout: {e}")
+
+            return payment_records
+        except Exception as e:
+            logger.error(f"Error fetching payment records for customer {customer_id}: {e}")
             raise HTTPException(
-                status_code=status.HTTP_504_GATEWAY_TIMEOUT,
-                detail="OTP service timeout"
-            )
-        except httpx.RequestError as e:
-            logger.error(f"Error calling OTP service: {e}")
-            raise HTTPException(
-                status_code=status.HTTP_503_SERVICE_UNAVAILABLE,
-                detail=f"OTP service unavailable: {str(e)}"
+                status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+                detail="Failed to fetch payment records"
             )
     
     async def verifyOtpAsync(self, payment_id: str, otp_code: str, auth_token: str) -> Dict[str, Any]:
-        """
-        Verify OTP and complete payment
-        
-        Args:
-            payment_id: Payment ID
-            otp_code: OTP code to verify
-            auth_token: JWT token for authenticating internal service calls
-            
-        Returns:
-            Dictionary containing updated payment and new access token (if available)
-            
-        Raises:
-            HTTPException: If verification fails
-        """
         payment = await self.getPaymentAsync(payment_id)
         
         if not payment:
@@ -418,18 +329,6 @@ class PaymentService:
             )
     
     async def cancelPaymentAsync(self, payment_id: str) -> bool:
-        """
-        Cancel a payment
-        
-        Args:
-            payment_id: Payment ID
-            
-        Returns:
-            True if cancelled successfully
-            
-        Raises:
-            HTTPException: If payment not found or cannot be cancelled
-        """
         payment = await self.getPaymentAsync(payment_id)
         
         if not payment:
@@ -451,23 +350,12 @@ class PaymentService:
         return True
     
     async def _updatePaymentStatusAsync(self, payment_id: str, status: str):
-        """Update payment status"""
         await self.payments_collection.update_one(
             {"paymentId": payment_id},
             {"$set": {"status": status}}
         )
     
     async def _getAllUnpaidTuitionsAsync(self, student_id: str, auth_token: str) -> tuple[list, list]:
-        """
-        Get all unpaid tuition IDs and full data for a student from tuition service.
-        
-        Args:
-            student_id: Student/Customer ID
-            auth_token: JWT token for authentication
-            
-        Returns:
-            Tuple of (unpaid_tuition_ids, unpaid_tuition_data_list)
-        """
         try:
             async with httpx.AsyncClient() as client:
                 response = await client.get(
@@ -498,7 +386,6 @@ class PaymentService:
             return [], []
     
     async def _deductCustomerBalanceAsync(self, customer_id: str, amount: float) -> float:
-        """Deduct amount from customer's balance directly from auth_db and return new balance"""
         try:
             from app.db.mongodb import auth_database
             
@@ -544,7 +431,6 @@ class PaymentService:
             raise
     
     async def _updateTuitionStatusAsync(self, tuition_id: str):
-        """Update tuition status to paid directly in tuition database"""
         try:
             from app.db.mongodb import tuition_database
             
@@ -572,7 +458,6 @@ class PaymentService:
             raise
     
     async def _sendTransactionCompletionEmailAsync(self, payment: PaymentModel, completed_at: datetime, auth_token: str):
-        """Send transaction completion email to customer and recipient via notification service"""
         try:
             # Get customer and tuition details
             from app.db.mongodb import auth_database
@@ -657,7 +542,6 @@ class PaymentService:
                 "payer_email": payer_email,
                 "recipient_name": recipient_name,
                 "payer_name": payer_name,
-                "transaction_id": str(payment.paymentId),
                 "payment_id": payment.paymentId,
                 "amount": payment.amount,
                 "timestamp": completed_at.isoformat(),
@@ -693,19 +577,6 @@ class PaymentService:
             raise
     
     async def _notifyPaymentCreatedAsync(self, payment: PaymentModel, user_email: Optional[str] = None) -> Optional[Dict[str, Any]]:
-        """
-        Notify other services when payment is created and automatically request OTP.
-        
-        This method automatically calls the OTP service to generate and send the OTP email
-        immediately after payment creation, so the user receives the email without needing
-        to make a separate API call.
-        
-        Returns:
-            Dict with OTP expiration info if successful, None otherwise
-        
-        NOTE: In production, this should be done via message broker (RabbitMQ, Kafka, etc.)
-        where OTP service subscribes to "payment.created" events.
-        """
         try:
             logger.info(f"[AUTO-OTP] Payment created: {payment.paymentId}")
             logger.info(f"[AUTO-OTP] Customer ID: {payment.customerId}, Email: {user_email}")
@@ -765,18 +636,40 @@ class PaymentService:
                 logger.info(f"[AUTO-OTP] User can manually request OTP via POST /api/payment/{payment.paymentId}/otp")
                 return None
             
-            # Future implementation with message broker:
-            # await broker.publish("payment.created", {
-            #     "payment_id": payment.paymentId,
-            #     "customer_id": payment.customerId,
-            #     "tuition_id": payment.tuitionId,
-            #     "amount": payment.amount,
-            #     "email": user_email
-            # })
-            # Then OTP service subscribes to "payment.created" events and auto-generates OTP
-            
         except Exception as e:
             # Don't fail payment creation if notification fails
             logger.error(f"[AUTO-OTP] Error in auto OTP generation: {e}")
             logger.info(f"[AUTO-OTP] User can manually request OTP via POST /api/payment/{payment.paymentId}/otp")
             return None
+
+    async def _fetchTuitionDetailsAsync(self, tuition_ids: List[str], auth_token: str) -> List[Dict[str, Any]]:
+        if not tuition_ids:
+            return []
+
+        tuition_details: List[Dict[str, Any]] = []
+        try:
+            async with httpx.AsyncClient() as client:
+                for tuition_id in tuition_ids:
+                    try:
+                        response = await client.get(
+                            f"{settings.TUITION_SERVICE_URL}/api/tuition/record/{tuition_id}",
+                            headers={
+                                "x-api-key": settings.API_KEY,
+                                "Authorization": f"Bearer {auth_token}"
+                            },
+                            timeout=10.0
+                        )
+                        if response.status_code == 200:
+                            tuition_details.append(response.json())
+                        else:
+                            logger.warning(
+                                f"Failed to fetch tuition {tuition_id} for payment history "
+                                f"(status={response.status_code}, body={response.text})"
+                            )
+                    except Exception as tuition_error:
+                        logger.warning(f"Error fetching tuition {tuition_id}: {tuition_error}")
+
+        except Exception as e:
+            logger.error(f"Error fetching tuition details: {e}")
+
+        return tuition_details

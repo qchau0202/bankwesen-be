@@ -10,7 +10,6 @@ The OTP Service manages one-time password generation, verification, and lifecycl
 
 - **OTP Generation**: Generate 6-digit OTP codes with 60-second expiration
 - **OTP Verification**: Verify OTP codes with attempt tracking
-- **OTP Resend**: Resend expired OTPs
 - **Payment Locking**: Lock payments after 3 failed attempts (5-minute lockout)
 - **Redis-backed Storage**: Fast, temporary storage with automatic expiration
 
@@ -94,30 +93,7 @@ POST /api/otp/verify
 }
 ```
 
-#### 3. Resend OTP
-```http
-POST /api/otp/resend
-```
-
-**Request Body:**
-```json
-{
-  "payment_id": "pay_123"
-}
-```
-
-**Response:**
-```json
-{
-  "success": true,
-  "message": "OTP resent successfully. Check your email.",
-  "payment_id": "pay_123",
-  "expires_in": 60,
-  "attempts_remaining": 3
-}
-```
-
-#### 4. Get OTP Status
+#### 3. Get OTP Status
 ```http
 GET /api/otp/{payment_id}/status
 ```
@@ -133,7 +109,7 @@ GET /api/otp/{payment_id}/status
 }
 ```
 
-#### 5. Cancel OTP
+#### 4. Cancel OTP
 ```http
 DELETE /api/otp/{payment_id}
 ```
@@ -170,8 +146,8 @@ POST /api/otp/verify -> POST /api/transaction -> GET /api/payment/{paymentID}
 
 1. **Expired OTP:**
 ```
-User clicks resend -> Generate new OTP
-POST /api/payment/{paymentID}/otp -> POST /api/otp/resend
+User must cancel the payment and create a new one to receive a fresh OTP
+POST /api/payment/{paymentID}/cancel -> POST /api/payment/ (new payment)
 ```
 
 2. **Wrong OTP (Max 3 attempts):**
@@ -264,15 +240,6 @@ curl -X POST http://localhost:8002/api/otp/verify \
   -d '{
     "payment_id": "pay_123",
     "otp_code": "123456"
-  }'
-```
-
-3. **Resend OTP:**
-```bash
-curl -X POST http://localhost:8002/api/otp/resend \
-  -H "Content-Type: application/json" \
-  -d '{
-    "payment_id": "pay_123"
   }'
 ```
 

@@ -3,24 +3,17 @@ from typing import Optional, List
 from datetime import datetime
 
 class OTPRequest(BaseModel):
-    """Request schema for OTP generation"""
     payment_id: str = Field(..., description="Payment ID")
     tuition_ids: List[str] = Field(..., description="List of Tuition IDs")
     user_id: str = Field(..., description="User ID")
     amount: float = Field(..., description="Payment amount")
     email: Optional[str] = Field(None, description="User email for OTP delivery")
-
+    attempts: int = Field(0, description="Number of attempts")
 class OTPVerifyRequest(BaseModel):
-    """Request schema for OTP verification"""
     payment_id: str = Field(..., description="Payment ID")
     otp_code: str = Field(..., description="OTP code to verify")
 
-class OTPResendRequest(BaseModel):
-    """Request schema for OTP resend"""
-    payment_id: str = Field(..., description="Payment ID")
-
 class OTPResponse(BaseModel):
-    """Response schema for OTP operations"""
     success: bool
     message: str
     payment_id: str
@@ -28,7 +21,6 @@ class OTPResponse(BaseModel):
     attempts_remaining: Optional[int] = Field(None, description="Remaining verification attempts")
 
 class OTPVerifyResponse(BaseModel):
-    """Response schema for OTP verification"""
     success: bool
     message: str
     payment_id: str
@@ -37,7 +29,6 @@ class OTPVerifyResponse(BaseModel):
     locked: Optional[bool] = False
 
 class OTPData(BaseModel):
-    """OTP data stored in Redis"""
     otp_code: str
     payment_id: str
     tuition_ids: List[str]

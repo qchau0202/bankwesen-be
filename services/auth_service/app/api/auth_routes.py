@@ -1,7 +1,6 @@
 from fastapi import APIRouter, HTTPException, status, Depends
 from ..schemas.auth import (
     LoginRequest,
-    RegisterRequest,
     TokenResponse,
     ErrorResponse,
     SuccessResponse,
@@ -53,66 +52,6 @@ async def login(
     
     return TokenResponse(**result)
 
-@router.post(
-    "/register",
-    response_model=TokenResponse,
-    status_code=status.HTTP_201_CREATED,
-    responses={
-        201: {
-            "description": "User registered successfully",
-            "model": TokenResponse
-        },
-        400: {
-            "description": "Bad request - passwords don't match",
-            "model": ErrorResponse
-        },
-        401: {
-            "description": "Missing or invalid API key",
-            "model": ErrorResponse
-        },
-        403: {
-            "description": "Invalid API key",
-            "model": ErrorResponse
-        },
-        409: {
-            "description": "User already exists",
-            "model": ErrorResponse
-        }
-    },
-    summary="User Registration",
-    description="Register a new user account and return JWT access token. Requires valid API key in X-API-Key header."
-)
-async def register(
-    register_data: RegisterRequest,
-    api_key: str = Depends(verify_api_key)
-):
-    """
-    Register a new user with the following validations:
-    - Username must be unique
-    - Email must be unique
-    - Passwords must match
-    - Password will be hashed before storing
-    
-    Returns a JWT token upon successful registration.
-    """
-    # Validate passwords match
-    if register_data.password != register_data.confirm_password:
-        raise HTTPException(
-            status_code=status.HTTP_400_BAD_REQUEST,
-            detail="Passwords do not match",
-        )
-    
-    # Attempt registration
-    result = await AuthService.registerAsync(register_data)
-
-    if not result:
-        raise HTTPException(
-            status_code=status.HTTP_409_CONFLICT,
-            detail="Username or email already exists",
-        )
-    
-    return TokenResponse(**result)
-
 @router.get(
     "/me",
     response_model=SuccessResponse,
@@ -148,9 +87,3 @@ async def verify_token(current_user: TokenData = Depends(get_current_user)):
             "is_valid": True
         }
     )
-
-
-
-
-
-

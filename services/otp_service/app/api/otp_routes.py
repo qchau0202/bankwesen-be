@@ -2,7 +2,6 @@ from fastapi import APIRouter, Depends, HTTPException, status
 from app.schemas.otp_schema import (
     OTPRequest,
     OTPVerifyRequest,
-    OTPResendRequest,
     OTPResponse,
     OTPVerifyResponse
 )
@@ -18,7 +17,6 @@ logger = logging.getLogger(__name__)
 router = APIRouter(prefix="/otp", tags=["OTP"], dependencies=[Depends(verify_api_key)])
 
 async def get_otp_service(redis_client: RedisClient = Depends(get_redis)) -> OTPService:
-    """Dependency to get OTP service"""
     return OTPService(redis_client)
 
 @router.post("/request", response_model=OTPResponse, status_code=status.HTTP_201_CREATED)
@@ -26,11 +24,6 @@ async def request_otp(
     request: OTPRequest,
     otp_service: OTPService = Depends(get_otp_service)
 ):
-    """
-    Generate and send OTP for payment
-    
-    Flow: User requests OTP -> System generates OTP -> Sends email (if email provided)
-    """
     try:
         logger.info(f"Received OTP request for payment_id={request.payment_id}, email={request.email}")
         
@@ -106,17 +99,6 @@ async def verify_otp(
     request: OTPVerifyRequest,
     otp_service: OTPService = Depends(get_otp_service)
 ):
-    """
-    Verify OTP code
-    
-    Flow: User submits OTP -> System verifies OTP -> Returns verification result
-    
-    Success: OTP is valid, payment can proceed
-    Failure: 
-        - Invalid OTP: User can retry (max 3 attempts)
-        - Expired OTP: User needs to request resend
-        - Locked: Too many failed attempts, payment is canceled
-    """
     try:
         logger.info(f"Verifying OTP for payment_id={request.payment_id}, code={request.otp_code}")
         
@@ -166,93 +148,11 @@ async def verify_otp(
             detail="Failed to verify OTP"
         )
 
-@router.post("/resend", response_model=OTPResponse)
-async def resend_otp(
-    request: OTPResendRequest,
-    otp_service: OTPService = Depends(get_otp_service)
-):
-    """
-    Resend OTP (when expired)
-    
-    Flow: User clicks resend -> System generates new OTP -> Sends email
-    """
-    try:
-        # Check if payment is locked
-        is_locked = await otp_service.isPaymentLockedAsync(request.payment_id)
-        if is_locked:
-            raise HTTPException(
-                status_code=status.HTTP_423_LOCKED,
-                detail="Payment is locked due to too many failed attempts. Please try again later."
-            )
-        
-        # Resend OTP
-        otp_code, otp_data = await otp_service.resendOtpAsync(request.payment_id)
-        
-        if not otp_code or not otp_data:
-            raise HTTPException(
-                status_code=status.HTTP_404_NOT_FOUND,
-                detail="No OTP data found for this payment. Please request a new OTP."
-            )
-        
-        # Get expiration time
-        expires_in = await otp_service.getRemainingTimeAsync(request.payment_id)
-        attempts_remaining = await otp_service.getAttemptsRemainingAsync(request.payment_id)
-        
-        # Send OTP via email using notification service
-        if otp_data.email:
-            try:
-                async with httpx.AsyncClient() as client:
-                    notification_response = await client.post(
-                        f"{settings.NOTIFICATION_SERVICE_URL}/api/notification/email-otp",
-                        json={
-                            "email": otp_data.email,
-                            "otp_code": otp_code,
-                            "expires_in": expires_in,
-                            "payment_id": request.payment_id,
-                            "amount": otp_data.amount
-                        },
-                        headers={settings.API_KEY_NAME: settings.API_KEY},
-                        timeout=10.0
-                    )
-                    
-                    if notification_response.status_code != 200:
-                        logger.warning(f"Failed to resend OTP email: {notification_response.text}")
-                        logger.info(f"Resent OTP for payment {request.payment_id}: {otp_code}")
-                    else:
-                        logger.info(f"OTP email resent successfully to {otp_data.email}")
-            except Exception as e:
-                logger.error(f"Error resending OTP email: {e}")
-                logger.info(f"Resent OTP for payment {request.payment_id}: {otp_code}")
-        else:
-            logger.info(f"Resent OTP for payment {request.payment_id}: {otp_code}")
-        
-        return OTPResponse(
-            success=True,
-            message="OTP resent successfully. Check your email.",
-            payment_id=request.payment_id,
-            expires_in=expires_in,
-            attempts_remaining=attempts_remaining
-        )
-    
-    except HTTPException:
-        raise
-    except Exception as e:
-        logger.error(f"Error resending OTP: {e}")
-        raise HTTPException(
-            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
-            detail="Failed to resend OTP"
-        )
-
 @router.get("/{payment_id}/status", response_model=OTPResponse)
 async def get_otp_status(
     payment_id: str,
     otp_service: OTPService = Depends(get_otp_service)
 ):
-    """
-    Get OTP status for a payment
-    
-    Returns: OTP expiration time and remaining attempts
-    """
     try:
         # Check if OTP exists
         otp_data = await otp_service.getOtpDataAsync(payment_id)
@@ -297,11 +197,6 @@ async def cancel_otp(
     payment_id: str,
     otp_service: OTPService = Depends(get_otp_service)
 ):
-    """
-    Cancel OTP and delete all related data
-    
-    Used when payment is canceled or user chooses to cancel
-    """
     try:
         await otp_service.deleteOtpAsync(payment_id)
         return None

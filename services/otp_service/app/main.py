@@ -18,7 +18,6 @@ logger = logging.getLogger(__name__)
 
 @asynccontextmanager
 async def lifespan(app: FastAPI):
-    """Lifespan context manager for startup and shutdown events"""
     # Startup
     logger.info("Starting OTP Service...")
     try:
@@ -64,7 +63,6 @@ async def root():
 
 @app.get("/health")
 async def health():
-    """Health check endpoint"""
     try:
         # Check Redis connection
         redis_healthy = await redis_client.redis.ping() if redis_client.redis else False

@@ -46,7 +46,6 @@ docker-compose up auth_service
 
 ### Authentication
 - `POST /api/v1/auth/login` - User login (requires API key)
-- `POST /api/v1/auth/register` - User registration (requires API key)
 - `GET /api/v1/auth/me` - Get current user info
 - `GET /api/v1/auth/verify` - Verify token
 
@@ -63,21 +62,6 @@ curl -X POST http://localhost:8001/api/v1/auth/login \
   -H "Content-Type: application/json" \
   -H "X-API-Key: bankwesen-api-key-2024-secure-change-in-production" \
   -d '{"username":"student1","password":"password123"}'
-```
-
-### Register (requires API key)
-```bash
-curl -X POST http://localhost:8001/api/v1/auth/register \
-  -H "Content-Type: application/json" \
-  -H "X-API-Key: bankwesen-api-key-2024-secure-change-in-production" \
-  -d '{
-    "username":"newuser",
-    "password":"password123",
-    "confirm_password":"password123",
-    "full_name":"John Doe",
-    "email":"john@example.com",
-    "phone_number":"1234567890"
-  }'
 ```
 
 ### Health Check (No API key required)

@@ -5,7 +5,6 @@ from bson import ObjectId
 
 
 class PyObjectId(ObjectId):
-    """Custom ObjectId type for Pydantic."""
     @classmethod
     def __get_validators__(cls):
         yield cls.validate
@@ -22,7 +21,6 @@ class PyObjectId(ObjectId):
 
 
 class TuitionModel(BaseModel):
-    """Tuition model for tuition_db with student information."""
     id: Optional[PyObjectId] = Field(alias="_id", default=None)
     tuitionId: str = Field(..., description="Unique tuition ID (PK)")
     

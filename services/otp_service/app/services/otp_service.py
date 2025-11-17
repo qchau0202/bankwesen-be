@@ -10,33 +10,20 @@ from app.utils.random_code import generate_otp
 logger = logging.getLogger(__name__)
 
 class OTPService:
-    """Service for managing OTP operations with Redis"""
     
     def __init__(self, redis_client: RedisClient):
         self.redis = redis_client
     
     def _getOtpKey(self, payment_id: str) -> str:
-        """Generate Redis key for OTP storage"""
         return f"otp:{payment_id}"
     
     def _getAttemptsKey(self, payment_id: str) -> str:
-        """Generate Redis key for attempts counter"""
         return f"otp:attempts:{payment_id}"
     
     def _getLockKey(self, payment_id: str) -> str:
-        """Generate Redis key for payment lock"""
         return f"otp:lock:{payment_id}"
     
     async def generateOtpAsync(self, request: OTPRequest) -> Tuple[str, OTPData]:
-        """
-        Generate a new OTP for payment
-        
-        Args:
-            request: OTP request data
-        
-        Returns:
-            Tuple of (otp_code, otp_data)
-        """
         # Check if payment is locked
         lock_key = self._getLockKey(request.payment_id)
         if await self.redis.exists(lock_key):
@@ -52,7 +39,7 @@ class OTPService:
             tuition_ids=request.tuition_ids,
             user_id=request.user_id,
             amount=request.amount,
-            attempts=0,
+            attempts=request.attempts,
             created_at=datetime.utcnow().isoformat(),
             email=request.email
         )
@@ -73,16 +60,6 @@ class OTPService:
         return otp_code, otp_data
     
     async def verifyOtpAsync(self, payment_id: str, otp_code: str) -> Tuple[bool, str, int]:
-        """
-        Verify OTP code
-        
-        Args:
-            payment_id: Payment ID
-            otp_code: OTP code to verify
-        
-        Returns:
-            Tuple of (is_valid, message, attempts_remaining)
-        """
         logger.info(f"Verifying OTP: payment_id={payment_id}, code={otp_code}")
         
         # Check if payment is locked
@@ -153,15 +130,6 @@ class OTPService:
             return False, f"Invalid OTP code. {attempts_remaining} attempts remaining.", attempts_remaining
     
     async def getOtpDataAsync(self, payment_id: str) -> Optional[OTPData]:
-        """
-        Get OTP data for a payment
-        
-        Args:
-            payment_id: Payment ID
-        
-        Returns:
-            OTP data if exists, None otherwise
-        """
         otp_key = self._getOtpKey(payment_id)
         otp_data_json = await self.redis.get(otp_key)
         
@@ -175,86 +143,21 @@ class OTPService:
             return None
     
     async def getRemainingTimeAsync(self, payment_id: str) -> int:
-        """
-        Get remaining time for OTP in seconds
-        
-        Args:
-            payment_id: Payment ID
-        
-        Returns:
-            Remaining time in seconds, -1 if OTP not found
-        """
         otp_key = self._getOtpKey(payment_id)
         ttl = await self.redis.ttl(otp_key)
         return ttl if ttl > 0 else -1
     
     async def getAttemptsRemainingAsync(self, payment_id: str) -> int:
-        """
-        Get remaining verification attempts
-        
-        Args:
-            payment_id: Payment ID
-        
-        Returns:
-            Number of remaining attempts
-        """
         attempts_key = self._getAttemptsKey(payment_id)
         attempts = await self.redis.get(attempts_key)
         current_attempts = int(attempts) if attempts else 0
         return max(0, settings.OTP_MAX_ATTEMPTS - current_attempts)
     
     async def isPaymentLockedAsync(self, payment_id: str) -> bool:
-        """
-        Check if payment is locked
-        
-        Args:
-            payment_id: Payment ID
-        
-        Returns:
-            True if locked, False otherwise
-        """
         lock_key = self._getLockKey(payment_id)
         return await self.redis.exists(lock_key)
     
-    async def resendOtpAsync(self, payment_id: str) -> Tuple[Optional[str], Optional[OTPData]]:
-        """
-        Resend OTP (delete old one and generate new)
-        
-        Args:
-            payment_id: Payment ID
-        
-        Returns:
-            Tuple of (otp_code, otp_data) or (None, None) if OTP data not found
-        """
-        # Get existing OTP data
-        otp_data = await self.get_otp_data(payment_id)
-        
-        if not otp_data:
-            return None, None
-        
-        # Generate new OTP request from existing data
-        request = OTPRequest(
-            payment_id=payment_id,
-            tuition_ids=otp_data.tuition_ids,
-            user_id=otp_data.user_id,
-            amount=otp_data.amount,
-            email=otp_data.email
-        )
-        
-        # Delete old OTP
-        otp_key = self._getOtpKey(payment_id)
-        await self.redis.delete(otp_key)
-        
-        # Generate new OTP
-        return await self.generate_otp(request)
-    
     async def deleteOtpAsync(self, payment_id: str):
-        """
-        Delete OTP and related data
-        
-        Args:
-            payment_id: Payment ID
-        """
         otp_key = self._getOtpKey(payment_id)
         attempts_key = self._getAttemptsKey(payment_id)
         lock_key = self._getLockKey(payment_id)

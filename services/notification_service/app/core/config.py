@@ -1,7 +1,6 @@
 from pydantic_settings import BaseSettings
 
 class Settings(BaseSettings):
-    """Notification Service Settings"""
     
     # Service Info
     SERVICE_NAME: str

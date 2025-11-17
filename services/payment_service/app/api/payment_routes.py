@@ -1,15 +1,17 @@
 from fastapi import APIRouter, Depends, HTTPException, status
 from fastapi.security import HTTPAuthorizationCredentials
-from typing import Dict, Any, TYPE_CHECKING
+from typing import Dict, Any, TYPE_CHECKING, List
 import logging
 
 from app.schemas.payment_schema import (
     PaymentCreateRequest,
     PaymentResponse,
-    OTPRequestResponse,
     OTPVerifyRequest,
     OTPVerifyResponse,
     PaymentCancelResponse,
+    PaymentHistoryResponse,
+    PaymentRecordResponse,
+    TuitionDetailResponse,
     ErrorResponse
 )
 from app.services.payment_service import PaymentService
@@ -25,7 +27,6 @@ router = APIRouter(prefix="/api/payment", tags=["Payment"], dependencies=[Depend
 
 
 async def get_payment_service(db: Any = Depends(get_database)) -> PaymentService:
-    """Dependency to get payment service"""
     return PaymentService(db)
 
 
@@ -46,19 +47,6 @@ async def create_payment(
     current_user: Dict[str, Any] = Depends(get_current_user),
     credentials: HTTPAuthorizationCredentials = Depends(security)
 ):
-    """
-    Create a new payment for all debt tuitions of a student.
-    
-    Only requires studentId - automatically fetches and pays ALL unpaid tuitions for that student.
-    Customer ID and email are automatically extracted from the JWT token (who is paying).
-    
-    Flow: OTP Page -> Message Broker (notify other services) -> Lock service
-    
-    - Automatically fetches all debt tuitions for the specified student
-    - Locks the payment to allow only one payment per tuition per customer
-    - Uses idempotency key to prevent duplicate payments
-    - Notifies other services via message broker
-    """
     try:
         # Extract customer ID and email from JWT token
         customer_id = current_user.get("customerId")
@@ -98,62 +86,6 @@ async def create_payment(
 
 
 @router.post(
-    "/{paymentID}/otp",
-    response_model=OTPRequestResponse,
-    status_code=status.HTTP_200_OK,
-    responses={
-        200: {"description": "OTP sent successfully"},
-        404: {"model": ErrorResponse, "description": "Payment not found"},
-        423: {"model": ErrorResponse, "description": "Payment locked"},
-        400: {"model": ErrorResponse, "description": "Invalid payment status"},
-    }
-)
-async def request_payment_otp(
-    paymentID: str,
-    payment_service: PaymentService = Depends(get_payment_service),
-    current_user: Dict[str, Any] = Depends(get_current_user)
-):
-    """
-    Request OTP for payment verification.
-    
-    Flow: Immediately send OTP (expiration: 60s) -> User inputs OTP code
-    
-    - OTP expires in 60 seconds
-    - Can be resent if expired
-    - Calls internal OTP service API
-    - Email is automatically extracted from JWT token
-    """
-    try:
-        logger.info(f"Requesting OTP for payment {paymentID}")
-        
-        # Get email from JWT token
-        user_email = current_user.get("email")
-        if not user_email:
-            raise HTTPException(
-                status_code=status.HTTP_400_BAD_REQUEST,
-                detail="User email not found in authentication token"
-            )
-        
-        otp_response = await payment_service.requestOtpAsync(paymentID, user_email)
-        
-        return OTPRequestResponse(
-            success=otp_response.get("success", True),
-            message=otp_response.get("message", "OTP sent successfully"),
-            payment_id=otp_response.get("payment_id", paymentID),
-            expires_in=otp_response.get("expires_in", 60),
-            attempts_remaining=otp_response.get("attempts_remaining", 3)
-        )
-    except HTTPException:
-        raise
-    except Exception as e:
-        logger.error(f"Error requesting OTP: {e}")
-        raise HTTPException(
-            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
-            detail=str(e)
-        )
-
-
-@router.post(
     "/{paymentID}/verify-otp",
     response_model=OTPVerifyResponse,
     status_code=status.HTTP_200_OK,
@@ -171,19 +103,6 @@ async def verify_payment_otp(
     current_user: Dict[str, Any] = Depends(get_current_user),
     credentials: HTTPAuthorizationCredentials = Depends(security)
 ):
-    """
-    Verify OTP and complete payment.
-    
-    Flow: System verifies OTP code
-    
-    SUCCESS:
-    - OTP verified -> Update tuition balance -> Complete payment
-    
-    FAILED:
-    - EXPIRED: Resend button becomes active (use POST /{paymentID}/otp)
-    - WRONG OTP: User can retry up to 3 times
-    - MAX ATTEMPTS: Payment cancelled automatically, user must create new payment
-    """
     try:
         logger.info(f"Verifying OTP for payment {paymentID}")
         
@@ -234,15 +153,6 @@ async def cancel_payment(
     payment_service: PaymentService = Depends(get_payment_service),
     current_user: Dict[str, Any] = Depends(get_current_user)
 ):
-    """
-    Cancel a payment.
-    
-    Flow: Multiple wrong OTP or user cancel -> Payment cancelled
-    
-    - User can cancel payment manually
-    - Payment auto-cancelled after 3 failed OTP attempts
-    - Can only cancel payments with 'pending' status
-    """
     try:
         logger.info(f"Cancelling payment {paymentID}")
         
@@ -264,6 +174,68 @@ async def cancel_payment(
 
 
 @router.get(
+    "/record",
+    response_model=PaymentHistoryResponse,
+    status_code=status.HTTP_200_OK,
+    responses={
+        200: {"description": "Payment history retrieved successfully"},
+        401: {"model": ErrorResponse, "description": "Unauthorized"},
+        500: {"model": ErrorResponse, "description": "Failed to fetch payment records"}
+    }
+)
+async def get_payment_records(
+    payment_service: PaymentService = Depends(get_payment_service),
+    current_user: Dict[str, Any] = Depends(get_current_user),
+    credentials: HTTPAuthorizationCredentials = Depends(security)
+):
+    customer_id = current_user.get("customerId")
+    if not customer_id:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="Customer ID not found in authentication token"
+        )
+
+    auth_token = credentials.credentials
+    raw_records = await payment_service.getCustomerPaymentRecordsAsync(customer_id, auth_token)
+
+    formatted_records: List[PaymentRecordResponse] = []
+    for record in raw_records:
+        payment = record["payment"]
+        tuitions = record.get("tuitions", [])
+
+        payment_response = PaymentResponse(
+            paymentId=payment.paymentId,
+            customerId=payment.customerId,
+            tuitionIds=payment.tuitionIds,
+            idempotency_key=payment.idempotency_key,
+            amount=payment.amount,
+            status=payment.status,
+            created_at=payment.created_at,
+            otp_expires_in=None
+        )
+
+        tuition_responses = []
+        for tuition in tuitions:
+            try:
+                tuition_responses.append(TuitionDetailResponse(**tuition))
+            except Exception as e:
+                logger.warning(f"Skipping tuition detail due to validation error: {e}")
+
+        formatted_records.append(
+            PaymentRecordResponse(
+                payment=payment_response,
+                tuitions=tuition_responses
+            )
+        )
+
+    return PaymentHistoryResponse(
+        customerId=customer_id,
+        total_payments=len(formatted_records),
+        payments=formatted_records
+    )
+
+
+@router.get(
     "/{paymentID}",
     response_model=PaymentResponse,
     status_code=status.HTTP_200_OK,
@@ -277,16 +249,10 @@ async def get_payment(
     payment_service: PaymentService = Depends(get_payment_service),
     current_user: Dict[str, Any] = Depends(get_current_user)
 ):
-    """
-    Get payment details by payment ID.
-    
-    - Returns payment information
-    - Can be used to check payment status and history
-    """
     try:
         logger.info(f"Getting payment {paymentID}")
         
-        payment = await payment_service.get_payment(paymentID)
+        payment = await payment_service.getPaymentAsync(paymentID)
         
         if not payment:
             raise HTTPException(

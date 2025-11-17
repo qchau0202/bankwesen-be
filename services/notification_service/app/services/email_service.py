@@ -7,21 +7,9 @@ from app.core.config import settings
 logger = logging.getLogger(__name__)
 
 class EmailService:
-    """Service for sending emails"""
     
     @staticmethod
     async def sendEmailAsync(to_email: str, subject: str, html_content: str) -> bool:
-        """
-        Send email using SMTP
-        
-        Args:
-            to_email: Recipient email address
-            subject: Email subject
-            html_content: HTML content of the email
-            
-        Returns:
-            True if email sent successfully, False otherwise
-        """
         try:
             # Create message
             message = MIMEMultipart("alternative")
@@ -52,7 +40,6 @@ class EmailService:
     
     @staticmethod
     def generateOtpEmail(otp_code: str, expires_in: int, payment_id: str, amount: float) -> str:
-        """Generate HTML content for OTP email"""
         return f"""
         <!DOCTYPE html>
         <html>
@@ -151,15 +138,12 @@ class EmailService:
     def generateTransactionEmail(
         recipient_name: str,
         payer_name: str,
-        transaction_id: str,
         payment_id: str,
         amount: float,
         timestamp: str,
         tuition_info: dict = None,
         is_payer: bool = True
     ) -> str:
-        """Generate HTML content for transaction confirmation email"""
-        
         if is_payer:
             title = "Payment Confirmation"
             message = f"Your payment has been processed successfully!"
@@ -269,7 +253,7 @@ class EmailService:
                     <h1>{title}</h1>
                 </div>
                 <div class="content">
-                    <div class="success-icon">&check;</div>
+                    <div class="success-icon">✔</div>
                     <h2>Transaction Successful</h2>
                     <p>{message}</p>
                     
@@ -277,7 +261,6 @@ class EmailService:
                     
                     <div class="info">
                         <strong>Transaction Details:</strong><br>
-                        Transaction ID: {transaction_id}<br>
                         Payment ID: {payment_id}<br>
                         Date & Time: {timestamp}<br>
                         Payer: {payer_name}<br>
@@ -306,7 +289,6 @@ class EmailService:
         payment_id: str,
         amount: float
     ) -> bool:
-        """Send OTP email to user"""
         subject = f"Your OTP Code - {otp_code}"
         html_content = self.generateOtpEmail(otp_code, expires_in, payment_id, amount)
         return await self.sendEmailAsync(email, subject, html_content)
@@ -317,27 +299,15 @@ class EmailService:
         payer_email: str,
         recipient_name: str,
         payer_name: str,
-        transaction_id: str,
         payment_id: str,
         amount: float,
         timestamp: str,
         is_self_payment: bool,
         tuition_info: dict = None
     ) -> tuple[bool, bool]:
-        """
-        Send transaction confirmation emails.
-        - Customer (payer) email: from JWT token
-        - Student (recipient) email: from tuition table
-        
-        If customer pays for themselves: send only to customer email
-        If customer pays for another student: send to both customer and student
-        
-        Returns:
-            Tuple of (customer_email_sent, student_email_sent)
-        """
         # Always send to customer (payer)
         customer_html = self.generateTransactionEmail(
-            recipient_name, payer_name, transaction_id, payment_id,
+            recipient_name, payer_name, payment_id,
             amount, timestamp, tuition_info, is_payer=True
         )
         customer_sent = await self.sendEmailAsync(
@@ -349,7 +319,7 @@ class EmailService:
         
         # Always send to student (recipient) - even if same email as customer
         student_html = self.generateTransactionEmail(
-            recipient_name, payer_name, transaction_id, payment_id,
+            recipient_name, payer_name, payment_id,
             amount, timestamp, tuition_info, is_payer=False
         )
         student_sent = await self.sendEmailAsync(

@@ -1,5 +1,5 @@
 from pydantic import BaseModel, Field, EmailStr
-from typing import Optional, List, Union
+from typing import Optional, List
 from datetime import datetime
 
 
@@ -57,23 +57,58 @@ class PaymentResponse(BaseModel):
             }
         }
 
+class TuitionDetailResponse(BaseModel):
+    """Response schema for individual tuition detail pulled from tuition service"""
+    tuitionId: str
+    studentId: str
+    studentName: str
+    studentEmail: EmailStr
+    semester: str
+    academic_year: str
+    tuition_amount: float
+    status: str
+    created_at: datetime
 
-class OTPRequestResponse(BaseModel):
-    """Response schema for OTP request"""
-    success: bool
-    message: str
-    payment_id: str
-    expires_in: int
-    attempts_remaining: int
-    
     class Config:
         json_schema_extra = {
             "example": {
-                "success": True,
-                "message": "OTP sent successfully to your email",
-                "payment_id": "PAY1731369600001",
-                "expires_in": 60,
-                "attempts_remaining": 3
+                "tuitionId": "TU1731369600001",
+                "studentId": "523K0001",
+                "studentName": "Nguyen Van A",
+                "studentEmail": "nguyenvana@student.edu.vn",
+                "semester": "Semester I",
+                "academic_year": "2024-2025",
+                "tuition_amount": 15000000.0,
+                "status": "paid",
+                "created_at": "2024-11-15T10:00:00"
+            }
+        }
+
+class PaymentRecordResponse(BaseModel):
+    """Combined payment + tuition detail response"""
+    payment: PaymentResponse
+    tuitions: List[TuitionDetailResponse]
+
+    class Config:
+        json_schema_extra = {
+            "example": {
+                "payment": PaymentResponse.Config.json_schema_extra["example"],
+                "tuitions": [TuitionDetailResponse.Config.json_schema_extra["example"]]
+            }
+        }
+
+class PaymentHistoryResponse(BaseModel):
+    """Wrapper response for all payment records made by a customer"""
+    customerId: str
+    total_payments: int
+    payments: List[PaymentRecordResponse]
+
+    class Config:
+        json_schema_extra = {
+            "example": {
+                "customerId": "523K0000",
+                "total_payments": 1,
+                "payments": [PaymentRecordResponse.Config.json_schema_extra["example"]]
             }
         }
 

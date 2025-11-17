@@ -7,14 +7,12 @@ from datetime import datetime
 
 
 class TuitionService:
-    """Service class for tuition-related operations."""
     
     def __init__(self, database: AsyncIOMotorDatabase):
         self.db = database
         self.collection = database.tuitions
     
     def _formatCurrency(self, amount: float) -> str:
-        """Format amount to VND currency string."""
         return f"{amount:,.0f} VND"
     
     async def getStudentTuitionsAsync(
@@ -23,20 +21,6 @@ class TuitionService:
         academic_year: Optional[str] = None, 
         semester: Optional[str] = None
     ) -> StudentTuitionListResponse:
-        """
-        Fetch all tuition records for a specific student with optional filters.
-        
-        Args:
-            student_id: The student's ID/code
-            academic_year: Optional filter for academic year (e.g., "2023 - 2024")
-            semester: Optional filter for semester (e.g., "Semester I", "Semester II", "Semester III")
-            
-        Returns:
-            StudentTuitionListResponse with all tuition records
-            
-        Raises:
-            HTTPException: If student not found or no tuition records exist
-        """
         # Build query with filters (case-insensitive)
         query = {"studentId": {"$regex": f"^{student_id}$", "$options": "i"}}
         
@@ -99,18 +83,6 @@ class TuitionService:
         )
     
     async def getTuitionByIdAsync(self, tuition_id: str) -> TuitionResponse:
-        """
-        Fetch a specific tuition record by tuition ID.
-        
-        Args:
-            tuition_id: The tuition record ID
-            
-        Returns:
-            TuitionResponse object
-            
-        Raises:
-            HTTPException: If tuition record not found
-        """
         tuition_doc = await self.collection.find_one({"tuitionId": {"$regex": f"^{tuition_id}$", "$options": "i"}})
         
         if not tuition_doc:
@@ -132,19 +104,6 @@ class TuitionService:
         )
     
     async def updateTuitionStatusAsync(self, tuition_id: str, status: str) -> TuitionResponse:
-        """
-        Update the status of a tuition record.
-        
-        Args:
-            tuition_id: The tuition record ID
-            status: New status ("debt" or "paid")
-            
-        Returns:
-            Updated TuitionResponse object
-            
-        Raises:
-            HTTPException: If tuition record not found or invalid status
-        """
         # Validate status
         valid_statuses = ["debt", "paid"]
         if status not in valid_statuses:

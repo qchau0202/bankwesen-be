@@ -13,18 +13,6 @@ api_key_header = APIKeyHeader(name=settings.API_KEY_NAME, auto_error=False)
 
 
 async def verify_api_key(api_key: str = Depends(api_key_header)) -> str:
-    """
-    Dependency to verify API key.
-    
-    Args:
-        api_key: API key from request header
-        
-    Returns:
-        The valid API key
-        
-    Raises:
-        HTTPException: If API key is invalid or missing
-    """
     # Skip API key check if disabled
     if not settings.ENABLE_API_KEY:
         return "disabled"
@@ -47,18 +35,7 @@ async def verify_api_key(api_key: str = Depends(api_key_header)) -> str:
 async def get_current_user(
     credentials: HTTPAuthorizationCredentials = Depends(security)
 ) -> TokenData:
-    """
-    Dependency to get the current authenticated user from JWT token.
-    
-    Args:
-        credentials: HTTP Authorization credentials with Bearer token
-        
-    Returns:
-        TokenData object with user information
-        
-    Raises:
-        HTTPException: If token is invalid or expired
-    """
+
     token = credentials.credentials
     
     # Decode token

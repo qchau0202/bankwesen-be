@@ -25,8 +25,10 @@ docker-compose up --build -d
 - Auth: http://localhost:8001/docs
 - Tuition: http://localhost:8005/docs
 
-**Test login:**
-- Username: `student1` / Password: `password123`
+**Sample logins (inserted via `services/auth_service/insert_test_users.py`):**
+- `quocchau` / `123456`
+- `longduong` / `123456`
+- `kaka` / `123456`
 
 ## Architecture Overview
 
@@ -40,25 +42,25 @@ Gateway (8000) → Auth (8001) → MongoDB
 
 ### Services
 - **Gateway** (`8000`): API entry point and routing
-- **Auth Service** (`8001`): JWT authentication, user management
-- **OTP Service** (`8002`): OTP generation/verification with Redis
-- **Payment Service** (`8003`): Payment processing
+- **Auth Service** (`8001`): JWT authentication with pre-seeded users (no runtime registration)
+- **OTP Service** (`8002`): OTP generation/verification backed by Redis
+- **Payment Service** (`8003`): Tuition payment orchestration (message broker hooks are stubbed; RabbitMQ integration is planned)
 - **Notification Service** (`8004`): Email notifications
 - **Tuition Service** (`8005`): Student tuition management
-- **MongoDB** (`27017`): Database (auth_db, tuition_db, etc.)
-- **Redis** (`6379`): OTP and session storage
+- **MongoDB** (`27017`): Databases per service (auth_db, tuition_db, payment_db)
+- **Redis** (`6379`): OTP code + attempt storage
 
 ## Key Features
 
 **JWT Authentication** - Secure token-based auth  
 **No Role System** - Simplified access control  
 **Cross-Student Access** - Students can help pay for others  
-**Sample Data** - Pre-loaded users and tuition records  
+**Sample Data** - Pre-loaded users and tuition records (seed scripts provided)  
+**OTP Automation** - OTP is generated and emailed automatically on payment creation  
 **Docker Ready** - One command to run everything  
 **API Documentation** - Swagger UI for all services
 
 ## Prerequisites
-
 
 - Docker & Docker Compose
 - Git
@@ -138,25 +140,18 @@ This project uses **separate MongoDB databases** for each service following micr
 
 ### Initialize Databases
 
-Initialize all databases with sample data:
-```powershell
-python init_all_databases.py
-```
-
-Or initialize individually:
-```powershell
-# Auth database
+Seed each service independently:
+```bash
+# Auth database (creates predefined users)
 cd services/auth_service
 python insert_test_users.py
 
-# Tuition database
+# Tuition database (loads sample tuition records)
 cd ../tuition_service
-python init_tuition_db.py
-
-# Payment database
-cd ../payment_service
-python init_payment_db.py
+python insert_sample_tuition.py
 ```
+
+The payment database is populated when payments are created through the API.
 
 **See detailed database documentation**: [DATABASE_SETUP.md](DATABASE_SETUP.md)  
 **Configuration summary**: [CONFIGURATION_SUMMARY.md](CONFIGURATION_SUMMARY.md)
@@ -192,17 +187,16 @@ bankwesen-be/
 ├── Makefile                 # Build and deployment commands
 ├── setup.ps1                # Windows setup script
 ├── setup.sh                 # Mac/Linux setup script
-├── init_all_databases.py    # Initialize all databases with sample data
 ├── gateway/
 │   ├── Dockerfile
 │   ├── requirements.txt
 │   └── app/main.py
 └── services/
-    ├── auth_service/         # User authentication with JWT
+    ├── auth_service/         # User authentication with JWT (pre-seeded users)
     ├── otp_service/          # OTP generation/verification with Redis
-    ├── payment_service/      # Payment processing
+    ├── payment_service/      # Payment processing (broker hooks stubbed)
     ├── notification_service/ # Email notifications via SMTP
-    └── tuition_service/      # Tuition fee management
+    └── tuition_service/      # Tuition fee management (sample data script included)
 ```
 
 Each service directory mirrors the gateway layout with its own `Dockerfile`, `requirements.txt`, and FastAPI application module.

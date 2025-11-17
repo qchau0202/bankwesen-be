@@ -26,14 +26,12 @@ app.add_middleware(
 # Event handlers
 @app.on_event("startup")
 async def startup_db_client():
-    """Connect to MongoDB on startup."""
     await connect_to_mongodb()
     print("Auth Service started successfully")
 
 
 @app.on_event("shutdown")
 async def shutdown_db_client():
-    """Close MongoDB connection on shutdown."""
     await close_mongodb_connection()
     print("Auth Service shutdown")
 

@@ -30,7 +30,6 @@ class Settings(BaseSettings):
         case_sensitive = True
     
     def get_allowed_origins(self) -> list:
-        """Parse ALLOWED_ORIGINS string to list"""
         if self.ALLOWED_ORIGINS == "*":
             return ["*"]
         return [origin.strip() for origin in self.ALLOWED_ORIGINS.split(",")]
