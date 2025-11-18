@@ -6,6 +6,20 @@ Complete banking system with microservices architecture featuring authentication
 
 **See [QUICK_START.md](QUICK_START.md) for complete setup guide!**
 
+### Run the setup scripts to create virtual environments
+
+- **Windows (PowerShell):**
+  ```powershell
+  Set-ExecutionPolicy -Scope CurrentUser -ExecutionPolicy RemoteSigned
+  .\setup.ps1
+  ```
+
+- **macOS / Linux (Bash):**
+  ```bash
+  chmod +x setup.sh
+  ./setup.sh
+  ```
+
 ### Quick Commands
 
 **Windows:**
@@ -138,20 +152,24 @@ This project uses **separate MongoDB databases** for each service following micr
 - **tuition_db**: Student records and tuition fees (Tuition Service)
 - **payment_db**: Payment processing and transactions (Payment Service)
 
-### Initialize Databases
+### Initialize / Test Databases
 
-Seed each service independently:
-```bash
-# Auth database (creates predefined users)
-cd services/auth_service
-python insert_test_users.py
+Only the **Auth** and **Tuition** services ship with seed scripts. To try different data in MongoDB:
 
-# Tuition database (loads sample tuition records)
-cd ../tuition_service
-python insert_sample_tuition.py
-```
+1. Enter the service folder (`services/auth_service` or `services/tuition_service`).
+2. Activate the virtual environment created by `setup.ps1` / `setup.sh` (for example `.\.venv\Scripts\Activate.ps1` on Windows or `source .venv/bin/activate` on macOS/Linux).
+3. Run the script:
+   ```bash
+   # Auth database (creates predefined users)
+   python insert_test_users.py
 
-The payment database is populated when payments are created through the API.
+   # Tuition database (loads sample tuition records)
+   python insert_sample_tuition.py
+   ```
+
+> ⚠️ Running outside the venv will fail because the dependencies are not available globally.
+
+The payment database is populated automatically when payments are created through the API.
 
 **See detailed database documentation**: [DATABASE_SETUP.md](DATABASE_SETUP.md)  
 **Configuration summary**: [CONFIGURATION_SUMMARY.md](CONFIGURATION_SUMMARY.md)

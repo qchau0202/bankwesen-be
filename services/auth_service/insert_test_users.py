@@ -67,7 +67,7 @@ async def insert_test_users():
             "created_at": datetime.utcnow()
         },
         {
-            "customerId": "523K0001",
+            "customerId": "523K0002",
             "username": "quocchau",
             "password_hash": hash_password("123456"),
             "full_name": "Ly Hung Quoc Chau",
